@@ -20,7 +20,16 @@ class SegmentFlag:
     
     def __str__(self) -> str:
         return bin(self.flag)
-
+    
+    def __eq__(self, __value: object) -> bool:
+        if (isinstance(__value, int)):
+            return self.flag == __value
+        elif isinstance(__value, FlagEnum):
+            return self.flag == int(__value)
+        elif isinstance(__value, SegmentFlag):
+            return self.flag == __value.flag
+        
+        return False
 
 class Segment:
     sequence_number: int
@@ -30,12 +39,12 @@ class Segment:
     data: bytes
 
     def __init__(self,
-                 seqnum: int = 0,
+                 sequence_number: int = 0,
                  ack: int = 0,
                  flag: SegmentFlag = SegmentFlag(0b0),
                  checksum: int = 0,
                  data: bytes = b"") -> None:
-        self.sequence_number = seqnum
+        self.sequence_number = sequence_number
         self.ack = ack
         self.flag = flag
         self.checksum = checksum
@@ -68,10 +77,18 @@ class Segment:
         result += struct.pack("I", self.ack)
         result += self.flag.to_bytes()
         result += struct.pack("x")
-        result += struct.pack("H", self.checksum)
+        result += struct.pack("H", checksum)
         result += self.data
 
         return result
+    
+    def is_valid(self) -> bool:
+        return calculate_checksum(self.data) == self.checksum
+    
+    # todo
+    # adjust the static method params
+    # maybe for syn_ack and fin_ack the params should be a segment so that it calculate
+    # appropriate seqnum and ack number there?
 
     @staticmethod
     def from_bytes(src: bytes) -> 'Segment':
@@ -87,4 +104,43 @@ class Segment:
             flag,
             checksum,
             data
+        )
+    
+    @staticmethod
+    def syn_segment(sequence_number: int) -> 'Segment':
+        return Segment(
+            sequence_number=sequence_number,
+            flag=SegmentFlag(int(FlagEnum.SYN_FLAG))
+        )
+    
+    @staticmethod
+    def ack_segment(sequence_number: int, ack: int) -> 'Segment':
+        return Segment(
+            sequence_number=sequence_number,
+            ack=ack,
+            flag=SegmentFlag(int(FlagEnum.ACK_FLAG))
+        )
+    
+    @staticmethod
+    def syn_ack_segment(sequence_number: int, ack: int) -> 'Segment':
+        return Segment(
+            sequence_number=sequence_number,
+            ack=ack,
+            flag=SegmentFlag(int(FlagEnum.SYN_ACK_FLAG))
+        )
+    
+    @staticmethod
+    def fin_segment(sequence_number: int, ack: int) -> 'Segment':
+        return Segment(
+            sequence_number=sequence_number,
+            ack=ack,
+            flag=SegmentFlag(int(FlagEnum.FIN_FLAG))
+        )
+    
+    @staticmethod
+    def fin_ack_segment(sequence_number: int, ack: int) -> 'Segment':
+        return Segment(
+            sequence_number=sequence_number,
+            ack=ack,
+            flag=SegmentFlag(int(FlagEnum.FIN_ACK_FLAG))
         )
