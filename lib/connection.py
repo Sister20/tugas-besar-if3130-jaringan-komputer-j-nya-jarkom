@@ -21,7 +21,6 @@ class Connection:
         self,
         ip: str,
         port: int,
-        socket: Socket
     ) -> None:
         # initialize UDP socket
         self.socket = Socket(AF_INET, SOCK_DGRAM)
