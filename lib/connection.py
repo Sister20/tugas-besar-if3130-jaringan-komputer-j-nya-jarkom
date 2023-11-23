@@ -1,7 +1,16 @@
-from socket import socket as Socket, AF_INET, SOCK_DGRAM, timeout as SocketTimeout
+from socket import socket as Socket, AF_INET, SOCK_DGRAM
 from .constants import TIMEOUT, SEGMENT_SIZE
-from .Segment import Segment
-from typing import Tuple
+from .segment import Segment
+
+class MessageInfo:
+    ip: str
+    port: int
+    segment: Segment
+
+    def __init__(self, ip: str, port: int, segment: Segment) -> None:
+        self.ip = ip
+        self.port = port
+        self.segment = segment
 
 class Connection:
     socket: Socket
@@ -26,11 +35,12 @@ class Connection:
     def close(self):
         self.socket.close()
 
-    def receive(self, timeout: int = TIMEOUT) -> Tuple[str, Segment]:
+    def receive(self, timeout: int = TIMEOUT) -> MessageInfo:
         self.socket.settimeout(timeout)
         [payload, source] =  self.socket.recvfrom(SEGMENT_SIZE)
+        [host, port] = source
 
-        return (source, Segment.from_bytes(payload))
+        return MessageInfo(host, port, Segment.from_bytes(payload))
     
-    def send(self, payload: Segment, destination: Tuple[str, int]):
-        self.socket.sendto(payload.to_bytes(), destination)
+    def send(self, message: MessageInfo):
+        self.socket.sendto(message.segment.to_bytes(), (message.ip, message.port))
