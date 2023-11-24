@@ -84,11 +84,6 @@ class Segment:
     
     def is_valid(self) -> bool:
         return calculate_checksum(self.data) == self.checksum
-    
-    # todo
-    # adjust the static method params
-    # maybe for syn_ack and fin_ack the params should be a segment so that it calculate
-    # appropriate seqnum and ack number there?
 
     @staticmethod
     def from_bytes(src: bytes) -> 'Segment':
