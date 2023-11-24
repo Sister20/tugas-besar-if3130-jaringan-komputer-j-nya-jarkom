@@ -43,3 +43,9 @@ class Connection:
     
     def send(self, message: MessageInfo):
         self.socket.sendto(message.segment.to_bytes(), (message.ip, message.port))
+
+class TCPConnection:
+    ip: str
+    port: int
+    receiver_seqnum: int
+    sender_seqnum: int

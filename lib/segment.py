@@ -144,3 +144,10 @@ class Segment:
             ack=ack,
             flag=SegmentFlag(int(FlagEnum.FIN_ACK_FLAG))
         )
+    
+    @staticmethod
+    def data_segment(data: bytes) -> 'Segment':
+        return Segment(
+            data=data,
+            flag=SegmentFlag(0)
+        )
