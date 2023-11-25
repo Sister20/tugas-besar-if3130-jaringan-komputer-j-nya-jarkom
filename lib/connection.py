@@ -16,6 +16,7 @@ class MessageInfo:
         self.segment = segment
 
 class ControlledSocket(Socket):
+    # todo delete this and use another way instead (qdisc or clumsy)
     def send_random_drop(self, message: MessageInfo):
         logging.info(f"Sending {message.segment.flag} packet to {message.ip}:{message.port}")
         if random.random() <= 0.2:
