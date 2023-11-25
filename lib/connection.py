@@ -17,7 +17,7 @@ class MessageInfo:
 
 class ControlledSocket(Socket):
     def send_random_drop(self, message: MessageInfo):
-        logging.info(f"Sending {message.segment.flag} packet")
+        logging.info(f"Sending {message.segment.flag} packet to {message.ip}:{message.port}")
         if random.random() <= 0.2:
             logging.info("UDP Packet loss while delivery")
         else:

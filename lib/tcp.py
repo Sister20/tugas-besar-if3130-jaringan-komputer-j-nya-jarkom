@@ -73,7 +73,7 @@ class TCPClient(BaseTCP):
                         logging.info(f"Received packet with flag other than SYN-ACK. Dropping ...")
 
                 elif self.status == TCPStatusEnum.WAITING_FIRST_PACKET and not init:
-                    self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, message.segment.sequence_number + 1)))
+                    self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, self.handshake_sequence_number + 1)))
                     break
 
             except TimeoutError:
@@ -90,8 +90,11 @@ class TCPClient(BaseTCP):
                 self.connect(False)
             else:
                 logging.info(f"Invalid ack number. Dropping ...")
-        else:
+        elif message.segment.flag == FlagEnum.NO_FLAG:
             logging.info(f"Received data.")
+
+        else:
+            logging.info("Received unrelated packet. Dropping ...")
 
 
 class TCPServer(BaseTCP):

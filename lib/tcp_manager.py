@@ -1,6 +1,6 @@
 from .connection import Connection, MessageInfo
 from .segment import Segment
-from .constants import FlagEnum
+from .constants import FlagEnum, TIMEOUT
 from .tcp import TCPServer
 from .tcp_pending import TCPPending
 from socket import timeout as socket_timeout
@@ -8,6 +8,8 @@ from socket import timeout as socket_timeout
 from typing import List
 
 import logging
+import time
+import threading
 
 class TCPManager:
     ip: str
@@ -23,7 +25,7 @@ class TCPManager:
     def always_listen(self):
         while True:
             try:
-                message = self.connection.receive(10)
+                message = self.connection.receive(TIMEOUT)
                 self.handle_message(message)
             except socket_timeout:
                 # do not exit on timeout
@@ -40,6 +42,20 @@ class TCPManager:
         else:
             self.pending_connections.add(message.ip, message.port, 0)
             self.handle_three_way_handshake(message)
+
+    def _resend_syn_ack(self, ip: str, port: int, client_sequence_number:int, server_sequence_number: int):
+        time.sleep(TIMEOUT)
+        
+        while self.pending_connections.is_pending(ip, port):
+            self.connection.send(
+                MessageInfo(
+                    ip,
+                    port,
+                    Segment.syn_ack_segment(sequence_number=server_sequence_number, ack=client_sequence_number + 1),
+                )
+            )
+
+            time.sleep(TIMEOUT)
 
     def handle_three_way_handshake(self, message: MessageInfo) -> None:
 
@@ -59,6 +75,9 @@ class TCPManager:
                     Segment.syn_ack_segment(sequence_number=server_sequence_number, ack=client_sequence_number + 1),
                 )
             )
+
+            thread = threading.Thread(target=self._resend_syn_ack, args=(message.ip, message.port, client_sequence_number, server_sequence_number))
+            thread.start()
 
             return
         elif segment.flag == FlagEnum.ACK_FLAG:
