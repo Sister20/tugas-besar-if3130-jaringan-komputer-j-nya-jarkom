@@ -1,8 +1,9 @@
 import random
+import logging
 
 from .connection import Connection, MessageInfo
 from .segment import Segment
-from .constants import FlagEnum
+from .constants import FlagEnum, TIMEOUT
 
 from enum import Enum
 
@@ -37,7 +38,7 @@ class TCPClient(BaseTCP):
 
     def connect(self, init=True):
         if init:
-            print(f"[!] [Client] Initiating Three Way Handshake")
+            logging.info("Initiating three way handshake")
 
         while self.status != TCPStatusEnum.ESTABLISHED:
             try:
@@ -45,58 +46,52 @@ class TCPClient(BaseTCP):
                     self.handshake_sequence_number = random.randint(0, 4294967000)
 
                     self.connection.send(MessageInfo(self.ip, self.port, Segment.syn_segment(self.handshake_sequence_number)))
-                    print(f"[!] [Client] Sending SYN packet")
-                    message = self.connection.receive(10)
+                    message = self.connection.receive(TIMEOUT)
                     self.status = TCPStatusEnum.WAITING_SYN_ACK
 
                     if message.segment.flag == FlagEnum.SYN_ACK_FLAG:
-                        print(f"[!] [Client] Received SYN-ACK. Sending ACK")
-                        
-                        if message.segment.ack == self.handshake_sequence_number + 1:
-                            self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, message.segment.sequence_number + 1)))
-                            self.status = TCPStatusEnum.WAITING_FIRST_PACKET
-                        else:
-                            print(f"[!] [Client] Invalid ack number. Dropping ...")
-                    else:
-                        print(f"[!] [Client] Received packet with flag other than SYN-ACK. Dropping ...")
-
-                elif self.status == TCPStatusEnum.WAITING_SYN_ACK:
-                    message = self.connection.receive(10)
-
-                    if message.segment.flag == FlagEnum.SYN_ACK_FLAG:
-                        print(f"[!] [Client] Received SYN-ACK. Sending ACK")
-
                         if message.segment.ack == self.handshake_sequence_number + 1:
                             self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, message.segment.sequence_number + 1)))
                             self.status = TCPStatusEnum.WAITING_FIRST_PACKET
                             break
                         else:
-                            print(f"[!] [Client] Invalid ack number. Dropping ...")
+                            logging.info("Invalid ack number. Dropping ...")
                     else:
-                        print(f"[!] [Client] Received packet with flag other than SYN-ACK. Dropping ...")
+                        logging.info(f"Received packet with flag other than SYN-ACK. Dropping ...")
 
-                elif self.status == TCPStatusEnum.WAITING_FIRST_PACKET:
-                    print(f"[!] [Client] Received SYN-ACK. Sending ACK")
+                elif self.status == TCPStatusEnum.WAITING_SYN_ACK:
+                    message = self.connection.receive(TIMEOUT)
+
+                    if message.segment.flag == FlagEnum.SYN_ACK_FLAG:
+                        if message.segment.ack == self.handshake_sequence_number + 1:
+                            self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, message.segment.sequence_number + 1)))
+                            self.status = TCPStatusEnum.WAITING_FIRST_PACKET
+                            break
+                        else:
+                            logging.info("Invalid ack number. Dropping ...")
+                    else:
+                        logging.info(f"Received packet with flag other than SYN-ACK. Dropping ...")
+
+                elif self.status == TCPStatusEnum.WAITING_FIRST_PACKET and not init:
                     self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, message.segment.sequence_number + 1)))
                     break
 
             except TimeoutError:
-                print(f"[!] [Client] Timeout error during phase {self.status} ... will retrying")
+                logging.info(f"Timeout error during phase {self.status} ... will retrying")
                 pass
 
     def handle_message(self, message: MessageInfo):
         # first packet received
         if self.status == TCPStatusEnum.WAITING_FIRST_PACKET and message.segment.flag == FlagEnum.NO_FLAG:
-            print(f"[!] [Client] Received data. TCP Connection established")
+            logging.info(f"TCP Connection established")
             self.status = TCPStatusEnum.ESTABLISHED
         elif self.status == TCPStatusEnum.WAITING_FIRST_PACKET and message.segment.flag == FlagEnum.SYN_ACK_FLAG:
-            print(f"[!] [Client] Received SYN-ACK. Sending ACK")
             if message.segment.ack == self.handshake_sequence_number + 1:
                 self.connect(False)
             else:
-                print(f"[!] [Client] Invalid ack number. Dropping ...")
+                logging.info(f"Invalid ack number. Dropping ...")
         else:
-            print(f"[!] [Client] Received a packet")
+            logging.info(f"Received data.")
 
 
 class TCPServer(BaseTCP):
@@ -106,9 +101,7 @@ class TCPServer(BaseTCP):
         super().__init__(connection, ip, port)
 
     def begin_file_transfer(self):
-        print(
-            f"[!] [Server {self.ip}:{self.port}] Beginning file transfer..."
-        )   
+        logging.info(f"[Client {self.ip}:{self.port}] Beginning file transfer...")   
         pass
 
     def handle_message(self, message: MessageInfo):

@@ -1,4 +1,6 @@
 import struct
+import logging
+
 from .constants import FlagEnum
 from .checksum import calculate_checksum
 from typing import List
@@ -19,7 +21,18 @@ class SegmentFlag:
         return struct.pack("B", self.syn | self.ack | self.fin)
     
     def __str__(self) -> str:
-        return bin(self.flag)
+        if self.syn and self.ack:
+            return "SYN-ACK"
+        elif self.fin and self.ack:
+            return "FIN-ACK"
+        elif self.syn:
+            return "SYN"
+        elif self.fin:
+            return "FIN"
+        elif self.ack:
+            return "ACK"
+        
+        return "DATA"
     
     def __eq__(self, __value: object) -> bool:
         if (isinstance(__value, int)):

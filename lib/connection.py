@@ -3,6 +3,7 @@ from .constants import TIMEOUT, SEGMENT_SIZE
 from .segment import Segment
 
 import random
+import logging
 
 class MessageInfo:
     ip: str
@@ -16,8 +17,9 @@ class MessageInfo:
 
 class ControlledSocket(Socket):
     def send_random_drop(self, message: MessageInfo):
+        logging.info(f"Sending {message.segment.flag} packet")
         if random.random() <= 0.2:
-            print("UDP Packet loss while delivery")
+            logging.info("UDP Packet loss while delivery")
         else:
             # todo make checksum invalid if needed
             self.sendto(message.segment.to_bytes(), (message.ip, message.port))
@@ -39,7 +41,7 @@ class Connection:
 
     def listen(self):
         self.socket.bind((self.ip, self.port))
-        print(f"[i] Socket started at {self.ip}:{self.port}")
+        logging.info(f"Socket started at {self.ip}:{self.port}")
 
     def close(self):
         self.socket.close()
@@ -48,8 +50,11 @@ class Connection:
         self.socket.settimeout(timeout)
         [payload, source] =  self.socket.recvfrom(SEGMENT_SIZE)
         [host, port] = source
+        segment = Segment.from_bytes(payload)
 
-        return MessageInfo(host, port, Segment.from_bytes(payload))
+        logging.info(f"from {host}:{port} received {segment.flag} packet")
+
+        return MessageInfo(host, port, segment)
     
     def send(self, message: MessageInfo):
         self.socket.send_random_drop(message)
