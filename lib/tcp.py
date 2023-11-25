@@ -27,6 +27,9 @@ class BaseTCP:
         self.connection = connection
         self.status = TCPStatusEnum.UNINITIALIZED
 
+    def __str__(self):
+        return f"{self.ip}:{self.port}"
+
     def handle_message(self, message: MessageInfo):
         raise NotImplementedError("handle_message is an abstract function that need to be implemented")
 
@@ -109,5 +112,6 @@ class TCPServer(BaseTCP):
 
     def handle_message(self, message: MessageInfo):
         pass
+
 
     

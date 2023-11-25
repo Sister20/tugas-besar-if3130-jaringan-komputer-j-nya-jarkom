@@ -12,6 +12,8 @@ if __name__ == "__main__":
 
     tcp_manager = TCPManager(connection=connection)
 
-    tcp_manager.always_listen()
+    tcp_manager.listen_for_connection()
+
+    tcp_manager.print_all_connections()
     
     connection.close()
