@@ -47,6 +47,8 @@ class TCPManager:
 
     def sequential_handle(self):
         for connection in self.tcp_connections:
+            connection.begin_transfer()
+
             while not connection.closed:
                 message = self.connection.receive(TIMEOUT)
 
@@ -57,6 +59,9 @@ class TCPManager:
                 connection.handle_message(message)
 
     def parallel_handle(self):
+        for connection in self.tcp_connections:
+            connection.begin_transfer()
+            
         while True:
             try:
                 message = self.connection.receive(TIMEOUT)
