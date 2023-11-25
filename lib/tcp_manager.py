@@ -35,6 +35,7 @@ class TCPManager:
             if tcp_server.ip == message.ip and tcp_server.port == message.port:
                 tcp_server.handle_message(message)
                 return
+            
         if self.pending_connections.is_pending(message.ip, message.port):
             self.handle_three_way_handshake(message)
         else:
@@ -79,7 +80,7 @@ class TCPManager:
             print(
                 f"[!] [Server {message.ip}:{message.port}] getting invalid flag={segment.flag}"
             )
-            return\
+            return
             
     def establish_connection(self, ip: str, port: int) -> None:
         self.tcp_connections.append(TCPServer(self.connection, ip, port))
