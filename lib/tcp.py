@@ -43,12 +43,12 @@ class TCPClient(BaseTCP):
             try:
                 if self.status == TCPStatusEnum.UNINITIALIZED:
                     self.connection.send(MessageInfo(self.ip, self.port, Segment.syn_segment(random.randint(0, 4294967000))))
-                    message = self.connection.receive()
+                    message = self.connection.receive(10)
 
                 if message.segment.flag == FlagEnum.SYN_ACK_FLAG:
-                    self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment()))
+                    self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, message.segment.sequence_number + 1)))
                     pass
-            except e:
+            except TimeoutError:
                 pass
 
 class TCPServer(BaseTCP):
@@ -56,6 +56,12 @@ class TCPServer(BaseTCP):
 
     def __init__(self, connection: Connection, ip: str, port: int) -> None:
         super().__init__(connection, ip, port)
+
+    def begin_file_transfer(self):
+        print(
+            f"[!] [Server {self.ip}:{self.port}] Beginning file transfer..."
+        )   
+        pass
 
     def handle_message(self, message: MessageInfo):
         pass
