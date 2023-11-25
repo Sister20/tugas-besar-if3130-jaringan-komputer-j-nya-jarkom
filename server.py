@@ -2,6 +2,7 @@ from lib.connection import Connection
 from lib.tcp_manager import TCPManager
 from lib.arg import ServerArg
 
+
 if __name__ == "__main__":
     args = ServerArg()
 
