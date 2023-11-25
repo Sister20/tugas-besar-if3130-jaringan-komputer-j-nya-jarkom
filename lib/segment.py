@@ -91,7 +91,7 @@ class Segment:
         ack = struct.unpack("I", src[4:8])[0]
         flag = SegmentFlag(struct.unpack("B", src[8:9])[0])
         checksum = struct.unpack("H", src[10:12])[0]
-        data = src[12:]
+        data = b"" if len(src) == 12  else src[12:]
 
         return Segment(
             sequence_number,

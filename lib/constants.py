@@ -7,6 +7,7 @@ TIMEOUT = 5
 SEGMENT_SIZE = 32764
 
 class FlagEnum(Enum):
+    NO_FLAG: int = 0b0
     SYN_FLAG: int = 0b000000010 # 2
     ACK_FLAG: int = 0b000010000 # 16
     FIN_FLAG: int = 0b000000001 # 1

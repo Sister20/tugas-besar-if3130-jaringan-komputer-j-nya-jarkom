@@ -24,11 +24,8 @@ class TCPManager:
                 message = self.connection.receive(10)
                 self.handle_message(message)
             except socket_timeout:
-                print(
-                    "[!] Timeout for listening for client. Exiting"
-                    )
-                self.connection.close()
-                exit(0)
+                # do not exit on timeout
+                pass
 
     def handle_message(self, message: MessageInfo):
         for tcp_server in self.tcp_connections:

@@ -86,7 +86,8 @@ class TCPClient(BaseTCP):
 
     def handle_message(self, message: MessageInfo):
         # first packet received
-        if self.status == TCPStatusEnum.WAITING_FIRST_PACKET and message.segment.flag != FlagEnum.SYN_ACK_FLAG:
+        if self.status == TCPStatusEnum.WAITING_FIRST_PACKET and message.segment.flag == FlagEnum.NO_FLAG:
+            print(f"[!] [Client] Received data. TCP Connection established")
             self.status = TCPStatusEnum.ESTABLISHED
         elif self.status == TCPStatusEnum.WAITING_FIRST_PACKET and message.segment.flag == FlagEnum.SYN_ACK_FLAG:
             print(f"[!] [Client] Received SYN-ACK. Sending ACK")
