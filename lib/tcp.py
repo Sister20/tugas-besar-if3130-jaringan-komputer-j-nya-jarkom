@@ -13,6 +13,12 @@ class TCPStatusEnum(Enum):
     WAITING_ACK = 2
     WAITING_FIRST_PACKET = 3
     ESTABLISHED = 4
+    CLOSED = 5
+    FIN_WAIT_1 = 6
+    FIN_WAIT_2 = 7
+    TIME_WAIT = 8
+    CLOSE_WAIT = 9
+    LAST_ACK = 10
 
 class BaseTCP:
     ip: str # IP and Port of the lawan bicara
