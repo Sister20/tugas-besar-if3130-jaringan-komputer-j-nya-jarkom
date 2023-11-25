@@ -3,6 +3,7 @@ from .segment import Segment
 from .constants import FlagEnum, TIMEOUT
 from .tcp import TCPServer
 from .tcp_pending import TCPPending
+from .handler import FileSender
 from socket import timeout as socket_timeout
 
 from typing import List
@@ -14,7 +15,7 @@ import threading
 class TCPManager:
     ip: str
     port: int
-    tcp_connections: List[TCPServer] = []
+    tcp_connections: List[FileSender] = []
     pending_connections: TCPPending = TCPPending()
     connection: Connection
 
@@ -44,11 +45,29 @@ class TCPManager:
         for i in range(len(self.tcp_connections)):
             print(f"{i+1}. {self.tcp_connections[i]}")
 
-    def always_listen(self):
+    def sequential_handle(self):
+        for connection in self.tcp_connections:
+            while not connection.closed:
+                message = self.connection.receive(TIMEOUT)
+
+                if message.ip != connection.ip or message.port != connection.port:
+                    logging.info("Wrong packet destination. Dropping ...")
+                    continue
+                    
+                connection.handle_message(message)
+
+    def parallel_handle(self):
         while True:
             try:
                 message = self.connection.receive(TIMEOUT)
-                self.handle_message(message)
+                for tcp_server in self.tcp_connections:
+                    if tcp_server.ip == message.ip and tcp_server.port == message.port:
+                        # bad implementation because spawn many thread at once but hey it works?
+                        thread = threading.Thread(target=tcp_server.handle_message, args=(message))
+                        thread.start()
+                        return
+                
+                logging.info("Detected packet for unknown connection. Dropping ...")
             except socket_timeout:
                 # do not exit on timeout
                 pass
@@ -67,14 +86,6 @@ class TCPManager:
                 self._handle_three_way_handshake(message)
             else:
                 logging.info("Server not accepting new connection. Dropping ...")
-
-    def handle_message(self, message: MessageInfo):
-        for tcp_server in self.tcp_connections:
-            if tcp_server.ip == message.ip and tcp_server.port == message.port:
-                tcp_server.handle_message(message)
-                return
-            
-        logging.info("Detected packet for unknown connection. Dropping ...")
 
     def _resend_syn_ack(self, ip: str, port: int, client_sequence_number:int, server_sequence_number: int):
         time.sleep(TIMEOUT)
@@ -131,7 +142,7 @@ class TCPManager:
             return
             
     def _establish_connection(self, ip: str, port: int) -> None:
-        self.tcp_connections.append(TCPServer(self.connection, ip, port))
+        self.tcp_connections.append(FileSender(self.connection, ip, port))
         self.pending_connections.remove(ip, port)
         logging.info(f"[Client {ip}:{port}] Connection established")
 

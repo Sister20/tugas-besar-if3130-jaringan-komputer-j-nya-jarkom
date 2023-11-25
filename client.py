@@ -1,5 +1,5 @@
 from lib.connection import Connection
-from lib.tcp import TCPClient
+from lib.handler import FileReceiver
 from lib.arg import ClientArg
 from lib.constants import TIMEOUT
 from socket import timeout as socket_timeout
@@ -15,7 +15,7 @@ def main():
 
     connection = Connection("127.0.0.1", args.port_client)
     
-    tcp = TCPClient(connection, args.host_server, args.port_server)
+    tcp = FileReceiver(connection, args.host_server, args.port_server)
     tcp.connect()
 
     try:

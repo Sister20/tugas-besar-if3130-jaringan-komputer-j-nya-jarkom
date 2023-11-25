@@ -18,6 +18,13 @@ def main():
         tcp_manager.listen_for_connection()
 
         tcp_manager.print_all_connections()
+
+        result = input("Use parallel transfer? [y/n]")
+
+        if result == "y":
+            tcp_manager.parallel_handle()
+        else:
+            tcp_manager.sequential_handle()        
         
     except KeyboardInterrupt:
         logging.info("Received KeyboardInterrupt. Closing connection.")

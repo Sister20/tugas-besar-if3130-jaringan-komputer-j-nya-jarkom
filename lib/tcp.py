@@ -18,6 +18,7 @@ class BaseTCP:
     ip: str # IP and Port of the lawan bicara
     port: int 
     connection: Connection
+    closed: bool
     
     status: TCPStatusEnum
     
@@ -26,6 +27,7 @@ class BaseTCP:
         self.port = port
         self.connection = connection
         self.status = TCPStatusEnum.UNINITIALIZED
+        self.closed = False
 
     def __str__(self):
         return f"{self.ip}:{self.port}"
@@ -155,13 +157,9 @@ class TCPServer(BaseTCP):
     def __init__(self, connection: Connection, ip: str, port: int) -> None:
         super().__init__(connection, ip, port)
 
-    def begin_file_transfer(self):
-        logging.info(f"[Client {self.ip}:{self.port}] Beginning file transfer...")   
-        pass
-
-    def handle_message(self, message: MessageInfo):
-        pass
-
+    # todo handle tcp close connection for server here
+    # notes: close method must receive message params. do not call receive here since the message could be from other client
+    # when parallel option is enabled
     def close(self):
         # connection termination
         self.connection.send(MessageInfo(self.ip, self.port, Segment.fin_segment(self.ver_seqnum)))
