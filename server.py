@@ -15,7 +15,10 @@ def main():
     tcp_manager = TCPManager(connection=connection)
 
     try:
-        tcp_manager.always_listen()
+        tcp_manager.listen_for_connection()
+
+        tcp_manager.print_all_connections()
+        
     except KeyboardInterrupt:
         logging.info("Received KeyboardInterrupt. Closing connection.")
     finally:
