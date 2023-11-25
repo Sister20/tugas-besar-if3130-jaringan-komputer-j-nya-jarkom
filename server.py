@@ -3,8 +3,10 @@ from lib.tcp_manager import TCPManager
 from lib.arg import ServerArg
 
 import logging
+import sys
+import socket
 
-if __name__ == "__main__":
+def main():
     logging.basicConfig(format="[i] [Server] %(message)s", level=logging.INFO)
     args = ServerArg()
 
@@ -12,6 +14,17 @@ if __name__ == "__main__":
 
     tcp_manager = TCPManager(connection=connection)
 
-    tcp_manager.always_listen()
-    
-    connection.close()
+    try:
+        tcp_manager.always_listen()
+    except KeyboardInterrupt:
+        logging.info("Received KeyboardInterrupt. Closing connection.")
+    finally:
+        try:
+            logging.info("Socket status before closing: %s", connection.socket.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR))
+        except OSError:
+            logging.info("Socket is already closed.")
+        connection.close()
+        sys.exit(0)
+
+if __name__ == "__main__":
+    main()

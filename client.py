@@ -5,8 +5,10 @@ from lib.constants import TIMEOUT
 from socket import timeout as socket_timeout
 
 import logging
+import sys
+import socket
 
-if __name__ == "__main__":
+def main():
     logging.basicConfig(format="[i] [Client] %(message)s", level=logging.INFO)
     
     args = ClientArg()
@@ -16,11 +18,20 @@ if __name__ == "__main__":
     tcp = TCPClient(connection, args.host_server, args.port_server)
     tcp.connect()
 
-    while True:
-        try:
+    try:
+        while True:
             message = connection.receive()
             tcp.handle_message(message)
-        except socket_timeout:
-            pass
+    except socket_timeout:
+        pass
+    finally:
+        try:
+            logging.info("Socket status before closing: %s", connection.socket.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR))
+        except OSError:
+            logging.info("Socket is already closed.")
+        
+        connection.close()
+        sys.exit(0)
 
-    connection.close()
+if __name__ == "__main__":
+    main()
