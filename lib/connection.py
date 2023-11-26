@@ -18,9 +18,6 @@ class MessageInfo:
 class ControlledSocket(Socket):
     # todo delete this and use another way instead (qdisc or clumsy)
     def send_random_drop(self, message: MessageInfo):
-        if message.segment.flag == FlagEnum.ACK_FLAG:
-            return
-        
         if random.random() <= 0.2:
             logging.info("UDP Packet loss while delivery")
         else:
