@@ -2,6 +2,7 @@ import os
 import math
 from io import BufferedReader, BufferedWriter
 from .constants import PAYLOAD_SIZE
+from .segment import Segment
 
 class FilePayload:
     path: str
@@ -11,14 +12,18 @@ class FilePayload:
     fd: BufferedReader
     
     def __init__(self, path: str, chunk_size: int = PAYLOAD_SIZE):
-        self.path = path
-        self.chunk_size = chunk_size
-        
-        stats = os.stat(path)
-        self.filesize = stats.st_size
-        self.total_chunk = math.ceil(self.filesize/self.chunk_size)
-
-        self.fd = open(path, "rb")
+        try:
+            print("INIT FILE PAYLOAD")
+            self.path = path
+            self.chunk_size = chunk_size
+            stats = os.stat(path)
+            self.filesize = stats.st_size
+            self.total_chunk = math.ceil(self.filesize/self.chunk_size)
+            self.fd = open(self.path, "rb")
+            print("INIT FILE PAYLOAD DONE")
+        except Exception as e:
+            print(e)
+            raise Exception("File not found")
 
     def get_chunk(self, chunk_number: int) -> bytes:
         if (chunk_number < 1 or chunk_number > self.total_chunk):
@@ -29,7 +34,14 @@ class FilePayload:
 
         return self.fd.read(self.chunk_size)
     
-    def __del__(self):
+    def get_segments(self) -> list:
+        segment_list = []
+        for i in range(1, self.total_chunk + 1):
+            segment_list.append(Segment.data_segment(self.get_chunk(i)))
+        
+        return segment_list
+    
+    def close(self):
         if (not self.fd.closed):
             self.fd.close()
 

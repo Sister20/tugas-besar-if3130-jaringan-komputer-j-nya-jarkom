@@ -163,6 +163,22 @@ class TCPServer(BaseTCP):
     def __init__(self, connection: Connection, ip: str, port: int) -> None:
         super().__init__(connection, ip, port)
 
+    def handle_message(self, message: MessageInfo):
+        # first packet received
+        if self.status == TCPStatusEnum.WAITING_SYN_ACK and message.segment.flag == FlagEnum.SYN_FLAG:
+            logging.info(f"TCP Connection established")
+            self.status = TCPStatusEnum.ESTABLISHED
+        elif self.status == TCPStatusEnum.WAITING_SYN_ACK and message.segment.flag == FlagEnum.ACK_FLAG:
+            if message.segment.ack == self.ver_seqnum + 1:
+                self.status = TCPStatusEnum.ESTABLISHED
+            else:
+                logging.info(f"Invalid ack number. Dropping ...")
+        elif message.segment.flag == FlagEnum.NO_FLAG:
+            logging.info(f"Received data.")
+
+        else:
+            logging.info("Received unrelated packet. Dropping ...")
+
     # todo handle tcp close connection for server here
     # notes: close method must receive message params. do not call receive here since the message could be from other client
     # when parallel option is enabled

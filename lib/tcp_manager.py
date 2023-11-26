@@ -31,12 +31,15 @@ class TCPManager:
             try:
                 message = self.connection.receive(TIMEOUT)
                 self._handle_connection_message(message, accept_new)
+                time.sleep(10)
+                accept_new = False
             except socket_timeout:
+                print("Pending connectionssss:")
                 # do not exit on timeout
-                pass
+                continue
             except KeyboardInterrupt as e:
-                if not accept_new:
-                    raise e
+                # if not accept_new:
+                #     raise e
                 
                 logging.info("Keyboard interrupt detected. Will stop accepting when every connection is established")
                 accept_new = False
@@ -131,7 +134,7 @@ class TCPManager:
                 )
             )
 
-            thread = threading.Thread(target=self._resend_syn_ack, args=(message.ip, message.port, client_sequence_number, server_sequence_number))
+            thread = threading.Thread(target=self. _resend_syn_ack, args=(message.ip, message.port, client_sequence_number, server_sequence_number))
             thread.start()
 
             return
@@ -147,7 +150,7 @@ class TCPManager:
             return
             
     def _establish_connection(self, ip: str, port: int) -> None:
-        self.tcp_connections.append(FileSender(self.connection, ip, port))
+        self.tcp_connections.append(FileSender(self.connection, ip, port, self.pending_connections.get_init_sequence_number(ip, port) + 1))
         self.pending_connections.remove(ip, port)
         logging.info(f"[Client {ip}:{port}] Connection established")
 
