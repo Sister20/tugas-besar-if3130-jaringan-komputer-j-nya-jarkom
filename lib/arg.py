@@ -1,4 +1,3 @@
-# lib/arg.py
 import argparse
 
 class ClientArg:
