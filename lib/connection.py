@@ -1,6 +1,6 @@
 from socket import socket as Socket, AF_INET, SOCK_DGRAM
 from .constants import TIMEOUT, SEGMENT_SIZE
-from .segment import Segment
+from .segment import Segment, FlagEnum
 
 import random
 import logging
@@ -18,6 +18,9 @@ class MessageInfo:
 class ControlledSocket(Socket):
     # todo delete this and use another way instead (qdisc or clumsy)
     def send_random_drop(self, message: MessageInfo):
+        if message.segment.flag == FlagEnum.ACK_FLAG:
+            return
+        
         if random.random() <= 0.2:
             logging.info("UDP Packet loss while delivery")
         else:

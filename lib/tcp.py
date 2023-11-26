@@ -66,7 +66,6 @@ class TCPClient(BaseTCP):
                     if message.segment.flag == FlagEnum.SYN_ACK_FLAG:
                         if message.segment.ack == self.handshake_sequence_number + 1:
                             self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, message.segment.sequence_number + 1)))
-                            logging.info("Sent ACK packet to complete three-way handshake")
                             self.status = TCPStatusEnum.WAITING_FIRST_PACKET
                             break
                         else:
@@ -80,7 +79,6 @@ class TCPClient(BaseTCP):
                     if message.segment.flag == FlagEnum.SYN_ACK_FLAG:
                         if message.segment.ack == self.handshake_sequence_number + 1:
                             self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, message.segment.sequence_number + 1)))
-                            logging.info("Sent ACK packet to complete three-way handshake")
                             self.status = TCPStatusEnum.WAITING_FIRST_PACKET
                             break
                         else:
@@ -90,7 +88,6 @@ class TCPClient(BaseTCP):
 
                 elif self.status == TCPStatusEnum.WAITING_FIRST_PACKET and not init:
                     self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, self.handshake_sequence_number + 1)))
-                    logging.info("Sent ACK packet to complete three-way handshake")
                     break
 
             except TimeoutError:
