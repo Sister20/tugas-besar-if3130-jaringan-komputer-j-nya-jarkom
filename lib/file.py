@@ -1,7 +1,7 @@
 import os
 import math
 from io import BufferedReader, BufferedWriter
-from .constants import SEGMENT_SIZE
+from .constants import PAYLOAD_SIZE
 
 class FilePayload:
     path: str
@@ -10,7 +10,7 @@ class FilePayload:
     total_chunk: int
     fd: BufferedReader
     
-    def __init__(self, path: str, chunk_size: int = SEGMENT_SIZE):
+    def __init__(self, path: str, chunk_size: int = PAYLOAD_SIZE):
         self.path = path
         self.chunk_size = chunk_size
         
