@@ -6,16 +6,38 @@ from .segment_sender import SenderBuffer
 import logging
 
 class FileReceiver(TCPClient):
+    def __init__(self, connection: Connection, ip: str, port: int, file_path: str) -> None:
+        super().__init__(connection, ip, port)
+        self.file_path = file_path
+        self.file_data = b""  # Buffer
+
     def handle_message(self, message: MessageInfo):
+        # initial three way handshake
         if self.status == TCPStatusEnum.WAITING_FIRST_PACKET and message.segment.flag == FlagEnum.SYN_ACK_FLAG:
             super().handle_message(message)
             return
+        
+        # data transfer
         elif self.status == TCPStatusEnum.WAITING_FIRST_PACKET and message.segment.flag == FlagEnum.NO_FLAG:
-            # called but not returned
             super().handle_message(message)
-        # todo add condition if closing connection and pass to parent class
+            self.handle_data(message.segment.data)
 
-        # handle file here
+        # other is closing the connection
+        elif self.status == TCPStatusEnum.CLOSE_WAIT and message.segment.flag == FlagEnum.FIN_FLAG:
+            self.close()
+            return
+
+    def handle_data(self, data: bytes):
+        self.file_data += data
+
+        if len(data) < 1460:
+            self.write_to_file()
+
+    def write_to_file(self):
+        with open(self.file_path, "wb") as file:
+            file.write(self.file_data)
+        
+        logging.info(f"File received and saved at: {self.file_path}")
         
 class FileSender(TCPServer):
     sender_buffer: SenderBuffer

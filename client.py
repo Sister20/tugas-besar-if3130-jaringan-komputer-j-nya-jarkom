@@ -1,3 +1,4 @@
+# client.py
 from lib.connection import Connection
 from lib.handler import FileReceiver
 from lib.arg import ClientArg
@@ -10,12 +11,14 @@ import socket
 
 def main():
     logging.basicConfig(format="[i] [Client] %(message)s", level=logging.INFO)
-    
+
     args = ClientArg()
 
+    file_path = args.file_path  
+
     connection = Connection("127.0.0.1", args.port_client)
-    
-    tcp = FileReceiver(connection, args.host_server, args.port_server)
+
+    tcp = FileReceiver(connection, args.host_server, args.port_server, file_path)
     tcp.connect()
 
     try:
@@ -29,7 +32,7 @@ def main():
             logging.info("Socket status before closing: %s", connection.socket.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR))
         except OSError:
             logging.info("Socket is already closed.")
-        
+
         connection.close()
         sys.exit(0)
 
