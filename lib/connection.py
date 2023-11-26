@@ -52,10 +52,10 @@ class Connection:
         [host, port] = source
         segment = Segment.from_bytes(payload)
 
-        logging.info(f"from {host}:{port} received {segment.flag} packet")
+        logging.info(f"from {host}:{port} received {segment.flag} packet with seqnum {segment.sequence_number} and ack {segment.ack}")
 
         return MessageInfo(host, port, segment)
     
     def send(self, message: MessageInfo):
-        logging.info(f"Sending {message.segment.flag} packet to {message.ip}:{message.port}")
+        logging.info(f"Sending {message.segment.flag} packet to {message.ip}:{message.port} with seqnum {message.segment.sequence_number} and ack {message.segment.ack}")
         self.socket.send_random_drop(message)
