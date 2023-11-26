@@ -26,7 +26,6 @@ class FileSender(TCPServer):
         self.receiver_ack_number = ack_number
         self.sender_buffer = SenderBuffer(connection, ip, port, filePath, ack_number)
 
-
     def begin_transfer(self):
         print("Begin tranfsfer")
         self.sender_buffer.send(self.receiver_ack_number)
