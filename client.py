@@ -21,10 +21,11 @@ def main():
     tcp = FileReceiver(connection, args.host_server, args.port_server, file_path)
     tcp.connect()
 
-    try:
-        while True:
+    while not tcp.closed:
+        try:
             message = connection.receive()
             tcp.handle_message(message)
+<<<<<<< HEAD
     except socket_timeout:
         pass
     finally:
@@ -35,6 +36,13 @@ def main():
 
         connection.close()
         sys.exit(0)
+=======
+        except socket_timeout:
+            continue
+
+    connection.close()
+
+>>>>>>> d6d65097f3dc314fd72344e326082adb4d5fbbe0
 
 if __name__ == "__main__":
     main()

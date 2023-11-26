@@ -1,5 +1,4 @@
 import struct
-import logging
 
 from .constants import FlagEnum
 from .checksum import calculate_checksum

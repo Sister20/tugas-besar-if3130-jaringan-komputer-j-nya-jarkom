@@ -57,17 +57,14 @@ class TCPClient(BaseTCP):
                     self.handshake_sequence_number = random.randint(0, 4294967000)
 
                     self.connection.send(MessageInfo(self.ip, self.port, Segment.syn_segment(self.handshake_sequence_number)))
-                    logging.info(f"Sent SYN packet with sequence number {self.handshake_sequence_number}")
 
-                    message = self.connection.receive(TIMEOUT)
-                    logging.info(f"Received message during UNINITIALIZED: {message}")
+                    message = self.connection.receive(10)
 
                     self.status = TCPStatusEnum.WAITING_SYN_ACK
 
                     if message.segment.flag == FlagEnum.SYN_ACK_FLAG:
                         if message.segment.ack == self.handshake_sequence_number + 1:
                             self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, message.segment.sequence_number + 1)))
-                            logging.info("Sent ACK packet to complete three-way handshake")
                             self.status = TCPStatusEnum.WAITING_FIRST_PACKET
                             break
                         else:
@@ -76,13 +73,11 @@ class TCPClient(BaseTCP):
                         logging.info("Received packet with flag other than SYN-ACK. Dropping ...")
 
                 elif self.status == TCPStatusEnum.WAITING_SYN_ACK:
-                    message = self.connection.receive(TIMEOUT)
-                    logging.info(f"Received message during WAITING_SYN_ACK: {message}")
+                    message = self.connection.receive(10)
 
                     if message.segment.flag == FlagEnum.SYN_ACK_FLAG:
                         if message.segment.ack == self.handshake_sequence_number + 1:
                             self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, message.segment.sequence_number + 1)))
-                            logging.info("Sent ACK packet to complete three-way handshake")
                             self.status = TCPStatusEnum.WAITING_FIRST_PACKET
                             break
                         else:
@@ -92,7 +87,6 @@ class TCPClient(BaseTCP):
 
                 elif self.status == TCPStatusEnum.WAITING_FIRST_PACKET and not init:
                     self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, self.handshake_sequence_number + 1)))
-                    logging.info("Sent ACK packet to complete three-way handshake")
                     break
 
             except TimeoutError:

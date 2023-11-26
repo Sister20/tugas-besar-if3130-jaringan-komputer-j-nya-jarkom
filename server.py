@@ -5,6 +5,7 @@ from lib.arg import ServerArg
 import logging
 import sys
 import socket
+import traceback
 
 def main():
     logging.basicConfig(format="[i] [Server] %(message)s", level=logging.INFO)
@@ -12,21 +13,21 @@ def main():
 
     connection = Connection("127.0.0.1", args.port_server)
 
-    tcp_manager = TCPManager(connection=connection)
+    tcp_manager = TCPManager(args=args, connection=connection)
 
     try:
         tcp_manager.listen_for_connection()
 
         tcp_manager.print_all_connections()
 
-        result = input("Use parallel transfer? [y/n]")
+        result = input("Use parallel transfer? [y/n] ")
 
         if result == "y":
             tcp_manager.parallel_handle()
         else:
             tcp_manager.sequential_handle()        
         
-    except KeyboardInterrupt:
+    except KeyboardInterrupt as e:
         logging.info("Received KeyboardInterrupt. Closing connection.")
     finally:
         try:

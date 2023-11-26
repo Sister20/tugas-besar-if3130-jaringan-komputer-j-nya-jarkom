@@ -43,11 +43,10 @@ class FileSender(TCPServer):
     sender_buffer: SenderBuffer
     receiver_ack_number: int
 
-    def __init__(self, connection: Connection, ip: str, port: int, ack_number: int) -> None:
+    def __init__(self, filePath: str, connection: Connection, ip: str, port: int, ack_number: int) -> None:
         super().__init__(connection, ip, port)
         self.receiver_ack_number = ack_number
-        self.sender_buffer = SenderBuffer(connection, ip, port, "file/test.txt", ack_number)
-
+        self.sender_buffer = SenderBuffer(connection, ip, port, filePath, ack_number)
 
     def begin_transfer(self):
         print("Begin tranfsfer")

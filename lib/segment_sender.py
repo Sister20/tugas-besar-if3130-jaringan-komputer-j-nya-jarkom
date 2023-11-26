@@ -12,10 +12,11 @@ class SenderBuffer:
     ip_dest: str
     port_dest: int
     connection: Connection
-    segment_buffer: deque[Segment] = deque()
+    file_payload: FilePayload
     event_buffer: deque[Event] = deque()
     window_size: int = 5
     last_byte_acked: int
+    init_sequence_number: int
 
     def __init__(self,
                  connection: Connection,
@@ -24,14 +25,13 @@ class SenderBuffer:
                  path: str,
                  init_sequence_number: int,
                  ) -> None:
-        print("INIT SENDER BUFFER")
         self.connection = connection
         self.ip_dest = ip_dest
         self.port_dest = port_dest
-        file_payload = FilePayload(path)
-        self.segment_buffer = deque(file_payload.get_segments())
+        self.file_payload = FilePayload(path)
         self.last_byte_acked = init_sequence_number - 1
         self.last_byte_send = init_sequence_number - 1
+        self.init_sequence_number = init_sequence_number
 
     def send(self, ack_number: int) -> None:
         if ack_number <= self.last_byte_acked:
@@ -61,8 +61,8 @@ class SenderBuffer:
 
     def _start_task(self, count: int) -> None:
         for i in range(count):
-            segment = self.segment_buffer.popleft()
-            segment.ack = self.last_byte_acked + 1 + i
+            segment = self.file_payload.get_segment(self.last_byte_acked + 1 + i - (self.init_sequence_number - 1))
+            segment.sequence_number = self.last_byte_acked + 1 + i
             event = Event()
             thread = Thread(target=self._send_segment_with_backoff_timeout, args=(event, segment,))
             thread.start()
