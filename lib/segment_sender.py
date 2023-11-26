@@ -25,7 +25,7 @@ class SenderBuffer:
                  path: str,
                  init_sequence_number: int,
                  ) -> None:
-        self.connection = connection
+        self.connection = Connection(connection.ip, connection.port)
         self.ip_dest = ip_dest
         self.port_dest = port_dest
         self.file_payload = FilePayload(path)
@@ -44,10 +44,12 @@ class SenderBuffer:
         except IndexError:
             logging.info("INDEX ERROR PLIS HAJDLE")
             # todo index error
+        except Exception as e:
+            logging.info(f"ERROR {e}")
 
 
     def _send_segment_with_backoff_timeout(self, event: Event, segment: Segment, timeout:int = 2) -> None:
-        while not event.is_set():
+        while not event.is_set() and timeout < 32:
             self.connection.send(
                 MessageInfo(
                     self.ip_dest,
@@ -55,8 +57,9 @@ class SenderBuffer:
                     segment,
                 )
             )
-            logging.info(f"Sent packet {segment} to {self.ip_dest}:{self.port_dest} with timeout {timeout}")
+            logging.info(f"Sent packet\n{segment}to {self.ip_dest}:{self.port_dest} with timeout {timeout}")
             sleep(timeout)
+            timeout *= 2
 
 
     def _start_task(self, count: int) -> None:
