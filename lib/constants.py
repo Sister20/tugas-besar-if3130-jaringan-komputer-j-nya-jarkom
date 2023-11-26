@@ -9,12 +9,12 @@ SEGMENT_SIZE = 32768
 PAYLOAD_SIZE = SEGMENT_SIZE - HEADER_SIZE
 
 class FlagEnum(Enum):
-    NO_FLAG: int = 0b0
-    SYN_FLAG: int = 0b000000010 # 2
-    ACK_FLAG: int = 0b000010000 # 16
-    FIN_FLAG: int = 0b000000001 # 1
-    SYN_ACK_FLAG: int = SYN_FLAG | ACK_FLAG
-    FIN_ACK_FLAG: int = FIN_FLAG | ACK_FLAG
+    NO_FLAG: int = 0b0 # type: ignore
+    SYN_FLAG: int = 0b000000010 # type: ignore # 2
+    ACK_FLAG: int = 0b000010000 # type: ignore # 16
+    FIN_FLAG: int = 0b000000001 # type: ignore # 1
+    SYN_ACK_FLAG: int = SYN_FLAG | ACK_FLAG # type: ignore
+    FIN_ACK_FLAG: int = FIN_FLAG | ACK_FLAG # type: ignore
 
     def __int__(self) -> int:
         return self.value
