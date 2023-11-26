@@ -30,19 +30,20 @@ class TCPManager:
         logging.info("Begin listening for connections. Use Ctrl+C to stop new incoming connection")
         accept_new = True
 
-        while accept_new or self.pending_connections.tcp_client.__len__() != 0:
-            try:
-                message = self.connection.receive(TIMEOUT)
-                self._handle_connection_message(message, accept_new)
-            except socket_timeout:
-                # do not exit on timeout
-                continue
-            except KeyboardInterrupt as e:
-                if not accept_new:
-                    raise e
-                else:
-                    logging.info("Keyboard interrupt detected. Will stop accepting when every connection is established")
-                    accept_new = False
+        try:
+            while accept_new or self.pending_connections.tcp_client.__len__() != 0:
+                try:
+                    message = self.connection.receive(TIMEOUT)
+                    self._handle_connection_message(message, accept_new)
+                except socket_timeout:
+                    # do not exit on timeout
+                    pass
+        except KeyboardInterrupt as e:
+            if not accept_new:
+                raise e
+            else:
+                logging.info("Keyboard interrupt detected. Will stop accepting when every connection is established")
+                accept_new = False
 
     def print_all_connections(self):
         for i in range(len(self.tcp_connections)):
