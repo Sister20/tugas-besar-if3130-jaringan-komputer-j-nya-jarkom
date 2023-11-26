@@ -32,6 +32,9 @@ class FilePayload:
 
         return self.fd.read(self.chunk_size)
     
+    def get_segment(self, segment_number: int) -> Segment:
+        return Segment.data_segment(self.get_chunk(segment_number))
+    
     # todo get segment by index instead
     def get_segments(self) -> list:
         segment_list = []
