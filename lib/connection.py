@@ -1,6 +1,6 @@
 from socket import socket as Socket, AF_INET, SOCK_DGRAM
 from .constants import TIMEOUT, SEGMENT_SIZE
-from .segment import Segment
+from .segment import Segment, FlagEnum
 
 import random
 import logging

@@ -20,7 +20,7 @@ def main():
 
         tcp_manager.print_all_connections()
 
-        result = input("Use parallel transfer? [y/n]")
+        result = input("Use parallel transfer? [y/n] ")
 
         if result == "y":
             tcp_manager.parallel_handle()

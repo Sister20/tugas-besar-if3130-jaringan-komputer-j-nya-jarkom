@@ -38,7 +38,7 @@ class TCPManager:
                 # do not exit on timeout
                 continue
             except KeyboardInterrupt as e:
-                if not accept_new and self.pending_connections.tcp_client.__len__() == 0:
+                if not accept_new:
                     raise e
                 else:
                     logging.info("Keyboard interrupt detected. Will stop accepting when every connection is established")
@@ -90,7 +90,7 @@ class TCPManager:
             self._handle_three_way_handshake(message)
         else:
             if accept_new:
-                self.pending_connections.add(message.ip, message.port, 0)
+                self.pending_connections.add(message.ip, message.port, message.segment.sequence_number)
                 self._handle_three_way_handshake(message)
             else:
                 logging.info("Server not accepting new connection. Dropping ...")
@@ -98,8 +98,8 @@ class TCPManager:
     def _resend_syn_ack(self, ip: str, port: int, client_sequence_number:int, server_sequence_number: int):
         time.sleep(TIMEOUT)
         
-        
         while self.pending_connections.is_pending(ip, port):
+
             current_sequence_number = self.pending_connections.get_init_sequence_number(ip, port)
 
             if current_sequence_number != client_sequence_number:
