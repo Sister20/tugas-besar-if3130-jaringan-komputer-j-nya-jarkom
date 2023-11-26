@@ -18,7 +18,6 @@ class MessageInfo:
 class ControlledSocket(Socket):
     # todo delete this and use another way instead (qdisc or clumsy)
     def send_random_drop(self, message: MessageInfo):
-        logging.info(f"Sending {message.segment.flag} packet to {message.ip}:{message.port}")
         if random.random() <= 0.2:
             logging.info("UDP Packet loss while delivery")
         else:
@@ -58,4 +57,5 @@ class Connection:
         return MessageInfo(host, port, segment)
     
     def send(self, message: MessageInfo):
+        logging.info(f"Sending {message.segment.flag} packet to {message.ip}:{message.port}")
         self.socket.send_random_drop(message)

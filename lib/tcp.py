@@ -60,7 +60,6 @@ class TCPClient(BaseTCP):
                     logging.info(f"Sent SYN packet with sequence number {self.handshake_sequence_number}")
 
                     message = self.connection.receive(TIMEOUT)
-                    logging.info(f"Received message during UNINITIALIZED: {message}")
 
                     self.status = TCPStatusEnum.WAITING_SYN_ACK
 
@@ -77,7 +76,6 @@ class TCPClient(BaseTCP):
 
                 elif self.status == TCPStatusEnum.WAITING_SYN_ACK:
                     message = self.connection.receive(TIMEOUT)
-                    logging.info(f"Received message during WAITING_SYN_ACK: {message}")
 
                     if message.segment.flag == FlagEnum.SYN_ACK_FLAG:
                         if message.segment.ack == self.handshake_sequence_number + 1:

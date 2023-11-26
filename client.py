@@ -18,20 +18,15 @@ def main():
     tcp = FileReceiver(connection, args.host_server, args.port_server)
     tcp.connect()
 
-    try:
-        while True:
+    while not tcp.closed:
+        try:
             message = connection.receive()
             tcp.handle_message(message)
-    except socket_timeout:
-        pass
-    finally:
-        try:
-            logging.info("Socket status before closing: %s", connection.socket.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR))
-        except OSError:
-            logging.info("Socket is already closed.")
-        
-        connection.close()
-        sys.exit(0)
+        except socket_timeout:
+            continue
+
+    connection.close()
+
 
 if __name__ == "__main__":
     main()

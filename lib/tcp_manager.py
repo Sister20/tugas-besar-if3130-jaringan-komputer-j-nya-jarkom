@@ -4,6 +4,7 @@ from .constants import FlagEnum, TIMEOUT
 from .tcp import TCPServer
 from .tcp_pending import TCPPending
 from .handler import FileSender
+from .arg import ServerArg
 from socket import timeout as socket_timeout
 
 from typing import List
@@ -18,10 +19,12 @@ class TCPManager:
     tcp_connections: List[FileSender] = []
     pending_connections: TCPPending = TCPPending()
     connection: Connection
+    args: ServerArg
 
-    def __init__(self, connection: Connection):
+    def __init__(self, args: ServerArg, connection: Connection):
         self.connection = connection
         self.connection.listen()
+        self.args = args
 
     def listen_for_connection(self):
         logging.info("Begin listening for connections. Use Ctrl+C to stop new incoming connection")
@@ -31,18 +34,15 @@ class TCPManager:
             try:
                 message = self.connection.receive(TIMEOUT)
                 self._handle_connection_message(message, accept_new)
-                time.sleep(10)
-                accept_new = False
             except socket_timeout:
-                print("Pending connectionssss:")
                 # do not exit on timeout
                 continue
             except KeyboardInterrupt as e:
-                # if not accept_new:
-                #     raise e
-                
-                logging.info("Keyboard interrupt detected. Will stop accepting when every connection is established")
-                accept_new = False
+                if not accept_new and self.pending_connections.tcp_client.__len__() == 0:
+                    raise e
+                else:
+                    logging.info("Keyboard interrupt detected. Will stop accepting when every connection is established")
+                    accept_new = False
 
     def print_all_connections(self):
         for i in range(len(self.tcp_connections)):
@@ -150,7 +150,7 @@ class TCPManager:
             return
             
     def _establish_connection(self, ip: str, port: int) -> None:
-        self.tcp_connections.append(FileSender(self.connection, ip, port, self.pending_connections.get_init_sequence_number(ip, port) + 1))
+        self.tcp_connections.append(FileSender(self.args.file_path, self.connection, ip, port, self.pending_connections.get_init_sequence_number(ip, port) + 1))
         self.pending_connections.remove(ip, port)
         logging.info(f"[Client {ip}:{port}] Connection established")
 

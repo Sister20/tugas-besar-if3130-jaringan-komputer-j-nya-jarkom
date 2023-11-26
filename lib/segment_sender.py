@@ -24,7 +24,6 @@ class SenderBuffer:
                  path: str,
                  init_sequence_number: int,
                  ) -> None:
-        print("INIT SENDER BUFFER")
         self.connection = connection
         self.ip_dest = ip_dest
         self.port_dest = port_dest

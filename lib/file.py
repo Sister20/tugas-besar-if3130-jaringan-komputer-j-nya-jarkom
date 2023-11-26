@@ -13,14 +13,12 @@ class FilePayload:
     
     def __init__(self, path: str, chunk_size: int = PAYLOAD_SIZE):
         try:
-            print("INIT FILE PAYLOAD")
             self.path = path
             self.chunk_size = chunk_size
             stats = os.stat(path)
             self.filesize = stats.st_size
             self.total_chunk = math.ceil(self.filesize/self.chunk_size)
             self.fd = open(self.path, "rb")
-            print("INIT FILE PAYLOAD DONE")
         except Exception as e:
             print(e)
             raise Exception("File not found")
@@ -34,6 +32,7 @@ class FilePayload:
 
         return self.fd.read(self.chunk_size)
     
+    # todo get segment by index instead
     def get_segments(self) -> list:
         segment_list = []
         for i in range(1, self.total_chunk + 1):
