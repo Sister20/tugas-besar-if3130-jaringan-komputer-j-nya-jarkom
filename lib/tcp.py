@@ -34,6 +34,7 @@ class BaseTCP:
         self.connection = connection
         self.status = TCPStatusEnum.UNINITIALIZED
         self.closed = False
+        
 
     def __str__(self):
         return f"{self.ip}:{self.port}"
@@ -47,6 +48,7 @@ class TCPClient(BaseTCP):
 
     def __init__(self, connection: Connection, ip: str, port: int) -> None:
         super().__init__(connection, ip, port)
+        self.handshake_sequence_number = random.randint(0, 50)
 
     def connect(self, init=True):
         if init:
@@ -55,7 +57,6 @@ class TCPClient(BaseTCP):
         while self.status != TCPStatusEnum.ESTABLISHED:
             try:
                 if self.status == TCPStatusEnum.UNINITIALIZED:
-                    self.handshake_sequence_number = random.randint(0, 50)
 
                     self.connection.send(MessageInfo(self.ip, self.port, Segment.syn_segment(self.handshake_sequence_number)))
 
