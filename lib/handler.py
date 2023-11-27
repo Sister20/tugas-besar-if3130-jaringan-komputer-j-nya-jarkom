@@ -5,12 +5,15 @@ from .segment import Segment
 from .tcp import TCPClient, TCPStatusEnum, TCPServer
 from .segment_sender import SenderBuffer
 import logging
+from .metadata import Metadata
 
 class FileReceiver(TCPClient):
     def __init__(self, connection: Connection, ip: str, port: int, file_path: str) -> None:
         super().__init__(connection, ip, port)
         self.file_path = file_path
+        self.file_size_bytes = 0
         self.file_data = b""  # Buffer
+        self.is_metadata_received = False
 
     def handle_message(self, message: MessageInfo):
         # initial three-way handshake
@@ -33,6 +36,12 @@ class FileReceiver(TCPClient):
 
     def handle_data(self, segment: Segment):
         if segment.sequence_number == self.server_sequence_number and segment.is_valid():
+
+            if not self.is_metadata_received:
+                self._handle_metadata(segment)
+                self.is_metadata_received = True
+                return
+            
             self.file_data += segment.data
 
             self.server_sequence_number += 1
@@ -41,10 +50,22 @@ class FileReceiver(TCPClient):
             ack_segment = Segment.ack_segment(0, segment.sequence_number + 1)
             self.connection.send(MessageInfo(self.ip, self.port, ack_segment))
 
-            if len(segment.data) < 1460:
+            if len(self.file_data) >= self.file_size_bytes:
                 self.write_to_file()
+        elif segment.sequence_number < self.server_sequence_number:
+            ack_segment = Segment.ack_segment(0, segment.sequence_number + 1)
+            self.connection.send(MessageInfo(self.ip, self.port, ack_segment))
         else:
             logging.info(f"Ignoring out-of-order or invalid segment with sequence number {segment.sequence_number}")
+
+    def _handle_metadata(self, segment: Segment):
+        (filename, extension, file_size_bytes) = Metadata.get_metadata(segment.data)
+        self.file_size_bytes = file_size_bytes
+        self.server_sequence_number += 1
+
+        # send ACK for the received segment
+        ack_segment = Segment.ack_segment(0, segment.sequence_number + 1)
+        self.connection.send(MessageInfo(self.ip, self.port, ack_segment))
 
     def write_to_file(self):
         with open(self.file_path, "wb") as file:

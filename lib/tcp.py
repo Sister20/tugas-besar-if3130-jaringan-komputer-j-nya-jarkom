@@ -4,7 +4,7 @@ import time
 from .connection import Connection, MessageInfo
 from .segment import Segment
 from .constants import FlagEnum, TIMEOUT
-
+from socket import timeout as socket_timeout
 from enum import Enum
 
 class TCPStatusEnum(Enum):
@@ -55,11 +55,11 @@ class TCPClient(BaseTCP):
         while self.status != TCPStatusEnum.ESTABLISHED:
             try:
                 if self.status == TCPStatusEnum.UNINITIALIZED:
-                    self.handshake_sequence_number = random.randint(0, 4294967000)
+                    self.handshake_sequence_number = random.randint(0, 50)
 
                     self.connection.send(MessageInfo(self.ip, self.port, Segment.syn_segment(self.handshake_sequence_number)))
 
-                    message = self.connection.receive(10)
+                    message = self.connection.receive(5)
 
                     self.status = TCPStatusEnum.WAITING_SYN_ACK
 
@@ -75,7 +75,7 @@ class TCPClient(BaseTCP):
                         logging.info("Received packet with flag other than SYN-ACK. Dropping ...")
 
                 elif self.status == TCPStatusEnum.WAITING_SYN_ACK:
-                    message = self.connection.receive(10)
+                    message = self.connection.receive(5)
 
                     if message.segment.flag == FlagEnum.SYN_ACK_FLAG:
                         if message.segment.ack == self.handshake_sequence_number + 1:
@@ -92,7 +92,7 @@ class TCPClient(BaseTCP):
                     self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, self.server_sequence_number)))
                     break
 
-            except TimeoutError:
+            except socket_timeout:
                 logging.info(f"Timeout error during phase {self.status} ... will retry")
                 pass
 

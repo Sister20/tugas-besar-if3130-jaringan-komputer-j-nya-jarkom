@@ -70,15 +70,17 @@ class TCPManager:
         while True:
             try:
                 message = self.connection.receive(TIMEOUT)
+                flag_handle = False
                 for tcp_server in self.tcp_connections:
                     if tcp_server.ip == message.ip and tcp_server.port == message.port:
+                        flag_handle = True
                         # bad implementation because spawn many thread at once but hey it works?
-                        # thread = threading.Thread(target=tcp_server.handle_message, args=(message))
+                        # thread = threading.Thread(target=tcp_server.handle_message, args=(self, message))
                         # thread.start()
                         tcp_server.handle_message(message)
-                        return
                 
-                logging.info("Detected packet for unknown connection. Dropping ...")
+                if not flag_handle:
+                    logging.info("Detected packet for unknown connection. Dropping ...")
             except socket_timeout:
                 # do not exit on timeout
                 pass
@@ -124,7 +126,7 @@ class TCPManager:
         if segment.flag == FlagEnum.SYN_FLAG:
             logging.info(f"[Client {message.ip}:{message.port}] Initiating three way handshake...")
 
-            server_sequence_number = random.randint(0, 4294967000)
+            server_sequence_number = random.randint(0, 50)
             self.pending_connections.add(message.ip, message.port, server_sequence_number)
             client_sequence_number = message.segment.sequence_number
 
