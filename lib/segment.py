@@ -17,7 +17,7 @@ class SegmentFlag:
         self.flag = self.syn | self.ack | self.fin
 
     def to_bytes(self) -> bytes:
-        return struct.pack("B", self.syn | self.ack | self.fin)
+        return struct.pack("<B", self.syn | self.ack | self.fin)
     
     def __str__(self) -> str:
         if self.syn and self.ack:
@@ -85,11 +85,11 @@ class Segment:
         checksum = calculate_checksum(self.data)
 
         result = b""
-        result += struct.pack("I", self.sequence_number)
-        result += struct.pack("I", self.ack)
+        result += struct.pack("<I", self.sequence_number)
+        result += struct.pack("<I", self.ack)
         result += self.flag.to_bytes()
-        result += struct.pack("x")
-        result += struct.pack("H", checksum)
+        result += struct.pack("<x")
+        result += struct.pack("<H", checksum)
         result += self.data
 
         return result
@@ -99,10 +99,10 @@ class Segment:
 
     @staticmethod
     def from_bytes(src: bytes) -> 'Segment':
-        sequence_number = struct.unpack("I", src[0:4])[0]
-        ack = struct.unpack("I", src[4:8])[0]
-        flag = SegmentFlag(struct.unpack("B", src[8:9])[0])
-        checksum = struct.unpack("H", src[10:12])[0]
+        sequence_number = struct.unpack("<I", src[0:4])[0]
+        ack = struct.unpack("<I", src[4:8])[0]
+        flag = SegmentFlag(struct.unpack("<B", src[8:9])[0])
+        checksum = struct.unpack("<H", src[10:12])[0]
         data = b"" if len(src) == 12  else src[12:]
 
         return Segment(
