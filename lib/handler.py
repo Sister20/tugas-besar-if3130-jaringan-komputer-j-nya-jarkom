@@ -10,7 +10,6 @@ class FileReceiver(TCPClient):
     def __init__(self, connection: Connection, ip: str, port: int, file_path: str) -> None:
         super().__init__(connection, ip, port)
         self.file_path = file_path
-        print("")
         self.file_data = b""  # Buffer
 
     def handle_message(self, message: MessageInfo):
@@ -33,8 +32,6 @@ class FileReceiver(TCPClient):
             return
 
     def handle_data(self, segment: Segment):
-        print(f"Received segment with sequence number {segment.sequence_number}")
-        print(f"Expected sequence number {self.server_sequence_number}")
         if segment.sequence_number == self.server_sequence_number and segment.is_valid():
             self.file_data += segment.data
 

@@ -16,6 +16,4 @@ class TCPPending:
         return (ip, port) in self.tcp_client
     
     def get_init_sequence_number(self, ip: str, port: int) -> int:    
-        print("BERAPAAA")
-        print(self.tcp_client[(ip, port)])  
         return self.tcp_client[(ip, port)]
