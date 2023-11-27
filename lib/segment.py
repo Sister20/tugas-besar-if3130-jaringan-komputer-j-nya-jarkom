@@ -63,8 +63,8 @@ class Segment:
         self.data = data
 
     def __str__(self) -> str:
-        result = f"{'seqnum':12}\t\t{self.sequence_number}\n"
-        result += f"{'acknum':12}\t\t{self.ack}\n"
+        result = f"{'seqnum':12}\t\t| {self.sequence_number}\n"
+        result += f"{'acknum':12}\t\t| {self.ack}\n"
         result += f"{'flag-syn':12}\t\t| {self.flag.syn >> 1}\n"
         result += f"{'flag-ack':12}\t\t| {self.flag.ack >> 4}\n"
         result += f"{'flag-fin':12}\t\t| {self.flag.fin}\n"
