@@ -13,8 +13,9 @@ class SenderBuffer:
     port_dest: int
     connection: Connection
     file_payload: FilePayload
-    event_buffer: deque[Event] = deque()
-    window_size: int = 1
+    event_buffer: deque[Event]
+    thread_buffer: deque[Thread]
+    window_size: int = 2
     last_byte_acked: int
     init_sequence_number: int
 
@@ -32,6 +33,8 @@ class SenderBuffer:
         self.last_byte_acked = init_sequence_number - 1
         self.last_byte_send = init_sequence_number - 1
         self.init_sequence_number = init_sequence_number
+        self.event_buffer = deque()
+        self.thread_buffer = deque()
 
     def send(self, ack_number: int) -> None:
         if ack_number <= self.last_byte_acked:
@@ -47,7 +50,7 @@ class SenderBuffer:
         except Exception as e:
             logging.info(f"ERROR {e}")
     
-    def _send_segment_with_backoff_timeout(self, event: Event, segment: Segment, timeout:int = 5, retry:int = 1) -> None:
+    def _send_segment_with_backoff_timeout(self, event: Event, segment: Segment, timeout = 0.25, retry:int = 1) -> None:
         while not event.is_set() and retry < 10:
             self.connection.send(
                 MessageInfo(
@@ -63,19 +66,23 @@ class SenderBuffer:
 
     def _start_task(self, count: int) -> None:
         for _ in range(count):
-            print(f"[{self.port_dest}] Starting {self.last_byte_send + 1 - (self.init_sequence_number)}")
             segment = self.file_payload.get_segment(self.last_byte_send + 1 - (self.init_sequence_number))
             segment.sequence_number = self.last_byte_send + 1
             event = Event()
             thread = Thread(target=self._send_segment_with_backoff_timeout, args=(event, segment,))
+            print(f"[{self.port_dest}] Starting {self.last_byte_send + 1 - (self.init_sequence_number)} {thread}")
             thread.start()
             self.event_buffer.append(event)
+            self.thread_buffer.append(thread)
+            print(f"thread_buffer {len(self.thread_buffer)}")
             self.last_byte_send += 1
             
 
     def _end_task(self, count: int) -> None:
         for _ in range(count):
             event = self.event_buffer.popleft()
+            thread = self.thread_buffer.popleft()
             event.set()
+            thread.join()
             self.last_byte_acked += 1
-            print(f"[{self.port_dest}] Killed {self.last_byte_acked - self.init_sequence_number}")
+            print(f"[{self.port_dest}] Killed {self.last_byte_acked - self.init_sequence_number} {thread}")
