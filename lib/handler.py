@@ -14,6 +14,7 @@ class FileReceiver(TCPClient):
         self.file_size_bytes = 0
         self.file_data = b""  # Buffer
         self.is_metadata_received = False
+        self.is_file_received = False
 
     def handle_message(self, message: MessageInfo):
         # initial three-way handshake
@@ -35,6 +36,9 @@ class FileReceiver(TCPClient):
             return
 
     def handle_data(self, segment: Segment):
+        if self.is_file_received:
+            logging.info("File already received")
+            return
         if segment.sequence_number == self.server_sequence_number and segment.is_valid():
 
             if not self.is_metadata_received:
@@ -52,8 +56,9 @@ class FileReceiver(TCPClient):
 
             if len(self.file_data) >= self.file_size_bytes:
                 self.write_to_file()
+                self.is_file_received = True
         elif segment.sequence_number < self.server_sequence_number:
-            ack_segment = Segment.ack_segment(0, segment.sequence_number + 1)
+            ack_segment = Segment.ack_segment(0, self.server_sequence_number)
             self.connection.send(MessageInfo(self.ip, self.port, ack_segment))
         else:
             logging.info(f"Ignoring out-of-order or invalid segment with sequence number {segment.sequence_number}")
@@ -74,7 +79,7 @@ class FileReceiver(TCPClient):
         logging.info(f"File received and saved at: {self.file_path}")
         
 class FileSender(TCPServer):
-    sender_buffer: SenderBuffer
+    # sender_buffer: SenderBuffer
     receiver_ack_number: int
 
     def __init__(self, filePath: str, connection: Connection, ip: str, port: int, ack_number: int) -> None:
