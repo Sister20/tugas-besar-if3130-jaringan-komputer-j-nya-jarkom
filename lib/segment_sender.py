@@ -57,7 +57,7 @@ class SenderBuffer:
                     segment,
                 )
             )
-            logging.info(f"Sent packet\n{segment}to {self.ip_dest}:{self.port_dest} with timeout {timeout}")
+            # logging.info(f"Sent packet\n{segment}to {self.ip_dest}:{self.port_dest} with timeout {timeout}")
             sleep(timeout)
             timeout *= 2
 
