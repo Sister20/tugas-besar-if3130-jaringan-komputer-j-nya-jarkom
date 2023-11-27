@@ -26,7 +26,7 @@ class FilePayload:
 
     def get_chunk(self, chunk_number: int) -> bytes:
         if (chunk_number < 1):
-            return Metadata(self.path).to_bytes()
+            return Metadata(self.path, self.filesize).to_bytes()
         
         if (chunk_number > self.total_chunk):
             raise Exception("Invalid chunk number")
