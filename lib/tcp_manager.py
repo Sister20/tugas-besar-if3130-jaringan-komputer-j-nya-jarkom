@@ -1,3 +1,4 @@
+import random
 from .connection import Connection, MessageInfo
 from .segment import Segment
 from .constants import FlagEnum, TIMEOUT
@@ -72,8 +73,9 @@ class TCPManager:
                 for tcp_server in self.tcp_connections:
                     if tcp_server.ip == message.ip and tcp_server.port == message.port:
                         # bad implementation because spawn many thread at once but hey it works?
-                        thread = threading.Thread(target=tcp_server.handle_message, args=(message))
-                        thread.start()
+                        # thread = threading.Thread(target=tcp_server.handle_message, args=(message))
+                        # thread.start()
+                        tcp_server.handle_message(message)
                         return
                 
                 logging.info("Detected packet for unknown connection. Dropping ...")
@@ -91,7 +93,7 @@ class TCPManager:
             self._handle_three_way_handshake(message)
         else:
             if accept_new:
-                self.pending_connections.add(message.ip, message.port, message.segment.sequence_number)
+                
                 self._handle_three_way_handshake(message)
             else:
                 logging.info("Server not accepting new connection. Dropping ...")
@@ -103,7 +105,7 @@ class TCPManager:
 
             current_sequence_number = self.pending_connections.get_init_sequence_number(ip, port)
 
-            if current_sequence_number != client_sequence_number:
+            if current_sequence_number != server_sequence_number:
                 break
 
             self.connection.send(
@@ -122,8 +124,10 @@ class TCPManager:
         if segment.flag == FlagEnum.SYN_FLAG:
             logging.info(f"[Client {message.ip}:{message.port}] Initiating three way handshake...")
 
-            server_sequence_number = self.pending_connections.get_init_sequence_number(message.ip, message.port)
-            client_sequence_number = segment.sequence_number
+            server_sequence_number = random.randint(0, 4294967000)
+            self.pending_connections.add(message.ip, message.port, server_sequence_number)
+            client_sequence_number = message.segment.sequence_number
+
 
             logging.info(f"[Client {message.ip}:{message.port}] SYN received with sequence number {client_sequence_number}")
 

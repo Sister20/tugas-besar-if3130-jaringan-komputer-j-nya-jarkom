@@ -43,6 +43,7 @@ class BaseTCP:
 
 class TCPClient(BaseTCP):
     handshake_sequence_number: int = 0
+    server_sequence_number: int = 0
 
     def __init__(self, connection: Connection, ip: str, port: int) -> None:
         super().__init__(connection, ip, port)
@@ -64,7 +65,8 @@ class TCPClient(BaseTCP):
 
                     if message.segment.flag == FlagEnum.SYN_ACK_FLAG:
                         if message.segment.ack == self.handshake_sequence_number + 1:
-                            self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, message.segment.sequence_number + 1)))
+                            self.server_sequence_number = message.segment.sequence_number + 1
+                            self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, self.server_sequence_number)))
                             self.status = TCPStatusEnum.WAITING_FIRST_PACKET
                             break
                         else:
@@ -77,7 +79,8 @@ class TCPClient(BaseTCP):
 
                     if message.segment.flag == FlagEnum.SYN_ACK_FLAG:
                         if message.segment.ack == self.handshake_sequence_number + 1:
-                            self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, message.segment.sequence_number + 1)))
+                            self.server_sequence_number = message.segment.sequence_number + 1
+                            self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, self.server_sequence_number)))
                             self.status = TCPStatusEnum.WAITING_FIRST_PACKET
                             break
                         else:
@@ -86,7 +89,7 @@ class TCPClient(BaseTCP):
                         logging.info("Received packet with flag other than SYN-ACK. Dropping ...")
 
                 elif self.status == TCPStatusEnum.WAITING_FIRST_PACKET and not init:
-                    self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, self.handshake_sequence_number + 1)))
+                    self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, self.server_sequence_number)))
                     break
 
             except TimeoutError:
