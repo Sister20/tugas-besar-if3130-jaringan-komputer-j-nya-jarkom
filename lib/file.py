@@ -3,6 +3,7 @@ import math
 from io import BufferedReader, BufferedWriter
 from .constants import PAYLOAD_SIZE
 from .segment import Segment
+from .metadata import Metadata
 
 class FilePayload:
     path: str
@@ -24,7 +25,10 @@ class FilePayload:
             raise Exception("File not found")
 
     def get_chunk(self, chunk_number: int) -> bytes:
-        if (chunk_number < 1 or chunk_number > self.total_chunk):
+        if (chunk_number < 1):
+            return Metadata(self.path).to_bytes()
+        
+        if (chunk_number > self.total_chunk):
             raise Exception("Invalid chunk number")
         
         offset = (chunk_number - 1) * self.chunk_size

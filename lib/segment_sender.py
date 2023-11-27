@@ -46,8 +46,7 @@ class SenderBuffer:
             # todo index error
         except Exception as e:
             logging.info(f"ERROR {e}")
-
-
+    
     def _send_segment_with_backoff_timeout(self, event: Event, segment: Segment, timeout:int = 2) -> None:
         while not event.is_set() and timeout < 32:
             self.connection.send(
@@ -64,7 +63,7 @@ class SenderBuffer:
 
     def _start_task(self, count: int) -> None:
         for i in range(count):
-            segment = self.file_payload.get_segment(self.last_byte_acked + 1 + i - (self.init_sequence_number - 1))
+            segment = self.file_payload.get_segment(self.last_byte_send + 1 + i - (self.init_sequence_number))
             segment.sequence_number = self.last_byte_acked + 1 + i
             event = Event()
             thread = Thread(target=self._send_segment_with_backoff_timeout, args=(event, segment,))
