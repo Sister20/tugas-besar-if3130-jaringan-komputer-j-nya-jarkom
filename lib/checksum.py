@@ -1,3 +1,6 @@
+CRC16_CONSTRANT = 0x1021
+
+# CRC-16/CCITT-FALSE
 def calculate_checksum(data: bytes):
     crc16 = 0xFFFF
     for byte in data:

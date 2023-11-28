@@ -2,7 +2,11 @@ import struct
 
 from .constants import FlagEnum
 from .checksum import calculate_checksum
+
 from typing import List
+
+class InvalidChecksumException(Exception):
+    pass
 
 class SegmentFlag:
     syn: int
@@ -82,7 +86,7 @@ class Segment:
         self.flag = SegmentFlag(flag)
 
     def to_bytes(self) -> bytes:
-        checksum = calculate_checksum(self.data)
+        checksum = calculate_checksum(self._get_bytes_for_checksum())
 
         result = b""
         result += struct.pack("<I", self.sequence_number)
@@ -95,7 +99,16 @@ class Segment:
         return result
     
     def is_valid(self) -> bool:
-        return calculate_checksum(self.data) == self.checksum
+        return calculate_checksum(self._get_bytes_for_checksum()) == self.checksum
+    
+    def _get_bytes_for_checksum(self) -> bytes:
+        result = b""
+        result += struct.pack("<I", self.sequence_number)
+        result += struct.pack("<I", self.ack)
+        result += self.flag.to_bytes()
+        result += self.data
+
+        return result
 
     @staticmethod
     def from_bytes(src: bytes) -> 'Segment':
@@ -105,13 +118,18 @@ class Segment:
         checksum = struct.unpack("<H", src[10:12])[0]
         data = b"" if len(src) == 12  else src[12:]
 
-        return Segment(
+        segment = Segment(
             sequence_number,
             ack,
             flag,
             checksum,
             data
         )
+
+        if not segment.is_valid():
+            raise InvalidChecksumException()
+        
+        return segment
     
     @staticmethod
     def syn_segment(sequence_number: int) -> 'Segment':

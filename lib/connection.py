@@ -1,6 +1,6 @@
-from socket import socket as Socket, AF_INET, SOCK_DGRAM
+from socket import socket as Socket, AF_INET, SOCK_DGRAM, timeout as socket_timeout
 from .constants import TIMEOUT, SEGMENT_SIZE
-from .segment import Segment, FlagEnum
+from .segment import Segment, InvalidChecksumException
 
 import random
 import logging
@@ -14,18 +14,10 @@ class MessageInfo:
         self.ip = ip
         self.port = port
         self.segment = segment
-
-class ControlledSocket(Socket):
-    # todo delete this and use another way instead (qdisc or clumsy)
-    def send_random_drop(self, message: MessageInfo):
-        if random.random() <= 0.2:
-            logging.info("UDP Packet loss while delivery")
-        else:
-            # todo make checksum invalid if needed
-            self.sendto(message.segment.to_bytes(), (message.ip, message.port))
+            
 
 class Connection:
-    socket: ControlledSocket
+    socket: Socket
     ip: str
     port: int
 
@@ -35,7 +27,7 @@ class Connection:
         port: int,
     ) -> None:
         # initialize UDP socket
-        self.socket = ControlledSocket(AF_INET, SOCK_DGRAM)
+        self.socket = Socket(AF_INET, SOCK_DGRAM)
         self.ip = ip
         self.port = port
 
@@ -50,7 +42,12 @@ class Connection:
         self.socket.settimeout(timeout)
         [payload, source] =  self.socket.recvfrom(SEGMENT_SIZE)
         [host, port] = source
-        segment = Segment.from_bytes(payload)
+
+        try:
+            segment = Segment.from_bytes(payload)
+        except InvalidChecksumException:
+            logging.info(f"from {host}:{port} received invalid packet. dropping ...")
+            raise socket_timeout
 
         logging.info(f"from {host}:{port} received {segment.flag} packet with seqnum {segment.sequence_number} and ack {segment.ack}")
 
@@ -58,4 +55,4 @@ class Connection:
     
     def send(self, message: MessageInfo):
         logging.info(f"Sending {message.segment.flag} packet to {message.ip}:{message.port} with seqnum {message.segment.sequence_number} and ack {message.segment.ack}")
-        self.socket.send_random_drop(message)
+        self.socket.sendto(message.segment.to_bytes(), (message.ip, message.port))

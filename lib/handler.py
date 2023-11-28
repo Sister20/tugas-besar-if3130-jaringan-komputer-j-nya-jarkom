@@ -40,8 +40,8 @@ class FileReceiver(TCPClient):
         if self.is_file_received:
             logging.info("File already received")
             return
-        if segment.sequence_number == self.server_sequence_number and segment.is_valid():
-
+        
+        if segment.sequence_number == self.server_sequence_number:
             if not self.is_metadata_received:
                 self._handle_metadata(segment)
                 self.is_metadata_received = True
@@ -62,7 +62,7 @@ class FileReceiver(TCPClient):
             ack_segment = Segment.ack_segment(0, self.server_sequence_number)
             self.connection.send(MessageInfo(self.ip, self.port, ack_segment))
         else:
-            logging.info(f"Ignoring out-of-order or invalid segment with sequence number {segment.sequence_number}")
+            logging.info(f"Ignoring out-of-order with sequence number {segment.sequence_number}")
 
     def _handle_metadata(self, segment: Segment):
         (filename, extension, file_size_bytes) = Metadata.get_metadata(segment.data)
