@@ -10,7 +10,7 @@ Implementasi ini tidak menggunakan _library_ tambahan selain yang sudah tersedia
 ## Cara menjalankan
 1. Jalankan _server_ dengan _command_ dibawah ini pada terminal:
 ```sh
-python3 server.py 3002 file/furina
+python3 server.py 3002 file/furina.jpeg
 ```
 2. Jalankan _client_ dengan _command_ dibawah ini pada terminal yang berbeda:
 ```sh
