@@ -120,6 +120,7 @@ class Segment:
     def from_bytes(src: bytes) -> 'Segment':
         hamming = Hamming()
         src = hamming.decode(src)
+
         sequence_number = struct.unpack("<I", src[0:4])[0]
         ack = struct.unpack("<I", src[4:8])[0]
         flag = SegmentFlag(struct.unpack("<B", src[8:9])[0])

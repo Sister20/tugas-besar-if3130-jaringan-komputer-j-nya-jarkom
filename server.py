@@ -29,6 +29,10 @@ def main():
         
     except KeyboardInterrupt as e:
         logging.info("Received KeyboardInterrupt. Closing connection.")
+    except Exception as e:
+        logging.info("Exception occured, closing connection.")
+        logging.info(traceback.format_exc())
+        print(e)
     finally:
         try:
             logging.info("Socket status before closing: %s", connection.socket.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR))
