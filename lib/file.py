@@ -4,6 +4,7 @@ from io import BufferedReader, BufferedWriter
 from .constants import PAYLOAD_SIZE
 from .segment import Segment
 from .metadata import Metadata
+import logging
 
 class FilePayload:
     path: str
@@ -74,6 +75,7 @@ class FileBuilder:
         if self.bytes_written > self.filesize:
             raise Exception(f"Written data {self.bytes_written} bytes are more than expected {self.filesize} bytes")
         elif self.bytes_written == self.filesize:
+            logging.info("File received successfully")
             # auto close if file written successfully
             self.fd.close()
 
