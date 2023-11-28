@@ -18,7 +18,7 @@ python3 client.py 3000 3002 client-out
 ```
 
 # Member
-* 13521093 - Akbar Maulana Ridho
 * 13521045 - Fakhri Muhammad Mahendra
+* 13521093 - Akbar Maulana Ridho
 * 13521151 - Vanessa Rebecca Wiyono
   
