@@ -86,7 +86,7 @@ class FileSender(TCPServer):
         self.sender_buffer.send(self.receiver_ack_number)
 
     def handle_message(self, message: MessageInfo):
-        if message.segment.flag == FlagEnum.NO_FLAG:
+        if self.status == TCPStatusEnum.ESTABLISHED and message.segment.flag != FlagEnum.FIN_FLAG:
             self.sender_buffer.send(message.segment.ack)
         else:
             super().handle_message(message)

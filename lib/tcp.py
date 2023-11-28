@@ -175,7 +175,6 @@ class TCPServer(BaseTCP):
         super().__init__(connection, ip, port)
         self.server_seqnum = 0
         self.status = TCPStatusEnum.ESTABLISHED
-        logging.info(f"TCP Connection established")
 
     def handle_message(self, message: MessageInfo):
         # first packet received
