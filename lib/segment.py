@@ -2,6 +2,7 @@ import struct
 
 from .constants import FlagEnum
 from .checksum import calculate_checksum
+from .hamming import Hamming
 
 from typing import List
 
@@ -98,6 +99,8 @@ class Segment:
         result += struct.pack("<x")
         result += struct.pack("<H", checksum)
         result += self.data
+        hamming = Hamming()
+        result = hamming.encode(result)
 
         return result
 
@@ -115,6 +118,8 @@ class Segment:
 
     @staticmethod
     def from_bytes(src: bytes) -> 'Segment':
+        hamming = Hamming()
+        src = hamming.decode(src)
         sequence_number = struct.unpack("<I", src[0:4])[0]
         ack = struct.unpack("<I", src[4:8])[0]
         flag = SegmentFlag(struct.unpack("<B", src[8:9])[0])
