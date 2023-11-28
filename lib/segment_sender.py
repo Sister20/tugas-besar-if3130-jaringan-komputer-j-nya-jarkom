@@ -86,3 +86,7 @@ class SenderBuffer:
             thread.join()
             self.last_byte_acked += 1
             print(f"[{self.port_dest}] Killed {self.last_byte_acked - self.init_sequence_number} {thread}")
+
+    def set_all_thread(self):
+        for ev in self.event_buffer:
+            ev.set()

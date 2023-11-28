@@ -32,11 +32,6 @@ class FileReceiver(TCPClient):
         elif self.status == TCPStatusEnum.ESTABLISHED and message.segment.flag == FlagEnum.NO_FLAG:
             self.handle_data(message.segment)
 
-        # other is closing the connection
-        elif self.status == TCPStatusEnum.CLOSE_WAIT and message.segment.flag == FlagEnum.FIN_FLAG:
-            self.close()
-            return
-
     def handle_data(self, segment: Segment):
         if self.is_file_received:
             logging.info("File already received")
@@ -91,4 +86,10 @@ class FileSender(TCPServer):
         self.sender_buffer.send(self.receiver_ack_number)
 
     def handle_message(self, message: MessageInfo):
-        self.sender_buffer.send(message.segment.ack)
+        if message.segment.flag == FlagEnum.NO_FLAG:
+            self.sender_buffer.send(message.segment.ack)
+        else:
+            super().handle_message(message)
+
+            if self.closed:
+                self.sender_buffer.set_all_thread()

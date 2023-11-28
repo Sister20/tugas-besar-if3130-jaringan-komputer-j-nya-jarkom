@@ -7,7 +7,7 @@ from .handler import FileSender
 from .arg import ServerArg
 from socket import timeout as socket_timeout
 
-from typing import List
+from typing import List, Dict, Tuple
 
 import logging
 import time
@@ -16,12 +16,13 @@ import threading
 class TCPManager:
     ip: str
     port: int
-    tcp_connections: List[FileSender] = []
+    tcp_connections: Dict[Tuple[str, int], FileSender]
     pending_connections: TCPPending = TCPPending()
     connection: Connection
     args: ServerArg
 
     def __init__(self, args: ServerArg, connection: Connection):
+        self.tcp_connections = {}
         self.connection = connection
         self.connection.listen()
         self.args = args
@@ -46,11 +47,14 @@ class TCPManager:
                 accept_new = False
 
     def print_all_connections(self):
-        for i in range(len(self.tcp_connections)):
-            print(f"{i+1}. {self.tcp_connections[i]}")
+        i = 1
+
+        for _, v in self.tcp_connections.items():
+            print(f"{i}. {v}")
+            i += 1
 
     def sequential_handle(self):
-        for connection in self.tcp_connections:
+        for _, connection in self.tcp_connections.items():
             connection.begin_transfer()
 
             while not connection.closed:
@@ -67,32 +71,35 @@ class TCPManager:
                     pass
 
     def parallel_handle(self):
-        for connection in self.tcp_connections:
+        for connection in self.tcp_connections.values():
             connection.begin_transfer()
+
+        all_completed = False
             
-        while True:
+        while not all_completed:
             try:
                 message = self.connection.receive(TIMEOUT)
-                flag_handle = False
-                for tcp_server in self.tcp_connections:
-                    if tcp_server.ip == message.ip and tcp_server.port == message.port:
-                        flag_handle = True
-                        # bad implementation because spawn many thread at once but hey it works?
-                        # thread = threading.Thread(target=tcp_server.handle_message, args=(self, message))
-                        # thread.start()
-                        tcp_server.handle_message(message)
                 
-                if not flag_handle:
+                if (message.ip, message.port) in self.tcp_connections:
+                    tcp_server = self.tcp_connections[(message.ip, message.port)]
+
+                    tcp_server.handle_message(message)
+
+                    if tcp_server.closed:
+                        self.tcp_connections.pop((message.ip, message.port))
+
+                        if len(self.tcp_connections) == 0:
+                            all_completed = True
+                else:
                     logging.info("Detected packet for unknown connection. Dropping ...")
             except socket_timeout:
                 # do not exit on timeout
                 pass
 
     def _handle_connection_message(self, message: MessageInfo, accept_new: bool):
-        for tcp_server in self.tcp_connections:
-            if tcp_server.ip == message.ip and tcp_server.port == message.port:
-                logging.info("Packet for already established connection. Dropping ...")
-                return
+        if (message.ip, message.port) in self.tcp_connections:
+            logging.info("Packet for already established connection. Dropping ...")
+            return
             
         if self.pending_connections.is_pending(message.ip, message.port):
             self._handle_three_way_handshake(message)
@@ -160,7 +167,7 @@ class TCPManager:
             return
             
     def _establish_connection(self, ip: str, port: int) -> None:
-        self.tcp_connections.append(FileSender(self.args.file_path, self.connection, ip, port, self.pending_connections.get_init_sequence_number(ip, port) + 1))
+        self.tcp_connections[(ip, port)] = FileSender(self.args.file_path, self.connection, ip, port, self.pending_connections.get_init_sequence_number(ip, port) + 1)
         self.pending_connections.remove(ip, port)
         logging.info(f"[Client {ip}:{port}] Connection established")
 

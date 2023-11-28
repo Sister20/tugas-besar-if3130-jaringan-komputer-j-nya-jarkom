@@ -1,5 +1,6 @@
 import random
 import logging
+import threading
 import time
 from .connection import Connection, MessageInfo
 from .segment import Segment
@@ -14,18 +15,15 @@ class TCPStatusEnum(Enum):
     WAITING_FIRST_PACKET = 3
     ESTABLISHED = 4
     CLOSED = 5
-    FIN_WAIT_1 = 6
-    FIN_WAIT_2 = 7
-    TIME_WAIT = 8
-    CLOSE_WAIT = 9
-    LAST_ACK = 10
+    ACTIVE_CLOSE = 6
+    WAITING_FIN_ACK = 7
+    CLOSE_TIME_WAIT = 8
+    WAITING_LAST_ACK = 9
 
 class BaseTCP:
     ip: str # IP and Port of the lawan bicara
     port: int 
     connection: Connection
-    closed: bool
-    
     status: TCPStatusEnum
     
     def __init__(self, connection: Connection, ip: str, port: int) -> None:
@@ -33,8 +31,10 @@ class BaseTCP:
         self.port = port
         self.connection = connection
         self.status = TCPStatusEnum.UNINITIALIZED
-        self.closed = False
         
+    @property
+    def closed(self) -> bool:
+        return self.status == TCPStatusEnum.CLOSED
 
     def __str__(self):
         return f"{self.ip}:{self.port}"
@@ -107,112 +107,126 @@ class TCPClient(BaseTCP):
                 self.connect(False)
             else:
                 logging.info(f"Invalid ack number. Dropping ...")
-        elif message.segment.flag == FlagEnum.NO_FLAG:
-            logging.info(f"Received data.")
         else:
             logging.info("Received unrelated packet. Dropping ...")
     
     def close(self):
-        TIME_WAIT_DURATION = 2 
         # connection termination
-        self.connection.send(MessageInfo(self.ip, self.port, Segment.fin_segment(self.handshake_sequence_number)))
-        self.status = TCPStatusEnum.FIN_WAIT_1
+        self.status = TCPStatusEnum.ACTIVE_CLOSE
 
-        while self.status != TCPStatusEnum.CLOSED:
+        while not self.closed:
             try:
-                if self.status == TCPStatusEnum.FIN_WAIT_1:
+                if self.status == TCPStatusEnum.ACTIVE_CLOSE:
+                    self.connection.send(MessageInfo(self.ip, self.port, Segment.fin_segment(self.handshake_sequence_number)))
+
                     message = self.connection.receive(TIMEOUT)
-                    logging.info(f"Received message during FIN_WAIT_1: {message}")
 
-                    if message.segment.flag == FlagEnum.ACK_FLAG:
-                        # Server acknowledges FIN, transition to FIN_WAIT_2
-                        self.status = TCPStatusEnum.FIN_WAIT_2
-                        logging.info("Connection in FIN_WAIT_2 state")
+                    self.status = TCPStatusEnum.WAITING_FIN_ACK
+
+                    if message.segment.flag == FlagEnum.FIN_ACK_FLAG:
+                        if message.segment.ack == self.handshake_sequence_number + 1:
+                            self.server_sequence_number = message.segment.sequence_number + 1
+                            self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, self.server_sequence_number)))
+                            self.status = TCPStatusEnum.CLOSE_TIME_WAIT
+                        else:
+                            logging.info("Invalid ack number. Dropping ...")
                     else:
-                        logging.info(f"Received unexpected packet during FIN_WAIT_1. Dropping ...")
+                        logging.info("Received packet with flag other than FIN-ACK. Dropping ...")
 
-                elif self.status == TCPStatusEnum.FIN_WAIT_2:
+                elif self.status == TCPStatusEnum.WAITING_FIN_ACK:
                     message = self.connection.receive(TIMEOUT)
-                    logging.info(f"Received message during FIN_WAIT_2: {message}")
 
-                    if message.segment.flag == FlagEnum.FIN_FLAG:
-                        # Server sends FIN, acknowledge and transition to TIME_WAIT
-                        self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, message.segment.sequence_number + 1)))
-                        self.status = TCPStatusEnum.TIME_WAIT
-                        logging.info("Connection in TIME_WAIT state")
-                        break
+                    if message.segment.flag == FlagEnum.FIN_ACK_FLAG:
+                        if message.segment.ack == self.handshake_sequence_number + 1:
+                            self.server_sequence_number = message.segment.sequence_number + 1
+                            self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, self.server_sequence_number)))
+                            self.status = TCPStatusEnum.CLOSE_TIME_WAIT
+                        else:
+                            logging.info("Invalid ack number. Dropping ...")
                     else:
-                        logging.info(f"Received unexpected packet during FIN_WAIT_2. Dropping ...")
+                        logging.info("Received packet with flag other than FIN-ACK. Dropping ...")
 
-                elif self.status == TCPStatusEnum.TIME_WAIT:
-                    # Sleep for TIME_WAIT duration, transition to CLOSED
-                    time.sleep(TIME_WAIT_DURATION)
-                    self.status = TCPStatusEnum.CLOSED
-                    logging.info("Connection closed successfully")
+                elif self.status == TCPStatusEnum.CLOSE_TIME_WAIT:
+                    logging.info("Waiting 10 seconds before closing connection ...")
+                    try:
+                        message = self.connection.receive(10)
 
-            except TimeoutError:
-                logging.info(f"Timeout error during closing phase ... will retry")
+                        if message.segment.flag == FlagEnum.FIN_ACK_FLAG:
+                            if message.segment.ack == self.handshake_sequence_number + 1:
+                                self.server_sequence_number = message.segment.sequence_number + 1
+                                self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, self.server_sequence_number)))
+                                self.status = TCPStatusEnum.CLOSE_TIME_WAIT
+                            else:
+                                logging.info("Invalid ack number. Dropping ...")
+                        else:
+                            logging.info("Received packet with flag other than FIN-ACK. Dropping ...")
+                            
+                    except socket_timeout:
+                        logging.info("Connection closed")
+                        self.status = TCPStatusEnum.CLOSED
+            except socket_timeout:
                 pass
 
 
 class TCPServer(BaseTCP):
-    ver_seqnum: int = 0
+    server_seqnum: int
 
     def __init__(self, connection: Connection, ip: str, port: int) -> None:
         super().__init__(connection, ip, port)
+        self.server_seqnum = 0
+        self.status = TCPStatusEnum.ESTABLISHED
+        logging.info(f"TCP Connection established")
 
     def handle_message(self, message: MessageInfo):
         # first packet received
-        if self.status == TCPStatusEnum.WAITING_SYN_ACK and message.segment.flag == FlagEnum.SYN_FLAG:
-            logging.info(f"TCP Connection established")
-            self.status = TCPStatusEnum.ESTABLISHED
-        elif self.status == TCPStatusEnum.WAITING_SYN_ACK and message.segment.flag == FlagEnum.ACK_FLAG:
-            if message.segment.ack == self.ver_seqnum + 1:
-                self.status = TCPStatusEnum.ESTABLISHED
-            else:
-                logging.info(f"Invalid ack number. Dropping ...")
-        elif message.segment.flag == FlagEnum.NO_FLAG:
-            logging.info(f"Received data.")
-
+        if message.segment.flag == FlagEnum.FIN_FLAG or self.status in [TCPStatusEnum.CLOSED, TCPStatusEnum.ACTIVE_CLOSE, TCPStatusEnum.CLOSE_TIME_WAIT, TCPStatusEnum.WAITING_LAST_ACK]:
+            self._handle_close(message)
         else:
             logging.info("Received unrelated packet. Dropping ...")
 
-    # todo handle tcp close connection for server here
-    # notes: close method must receive message params. do not call receive here since the message could be from other client
-    # when parallel option is enabled
-    def close(self):
-        # connection termination
-        self.connection.send(MessageInfo(self.ip, self.port, Segment.fin_segment(self.ver_seqnum)))
-        self.status = TCPStatusEnum.CLOSE_WAIT
-
+    def _handle_close(self, message: MessageInfo):
         while self.status != TCPStatusEnum.CLOSED:
             try:
-                if self.status == TCPStatusEnum.CLOSE_WAIT:
-                    message = self.connection.receive(TIMEOUT)
-                    logging.info(f"Received message during CLOSE_WAIT: {message}")
+                if message.segment.flag == FlagEnum.FIN_FLAG and self.status == TCPStatusEnum.ESTABLISHED:
+                    logging.info(f"[Client {message.ip}:{message.port}] Initiating graceful disconnection...")
+                    self.status = TCPStatusEnum.WAITING_LAST_ACK
 
-                    if message.segment.flag == FlagEnum.FIN_FLAG:
-                        # Client sends FIN, acknowledge and transition to LAST_ACK
-                        self.connection.send(MessageInfo(self.ip, self.port, Segment.ack_segment(0, message.segment.sequence_number + 1)))
-                        self.status = TCPStatusEnum.LAST_ACK
-                        logging.info("Connection in LAST_ACK state")
-                    else:
-                        logging.info(f"Received unexpected packet during CLOSE_WAIT. Dropping ...")
+                    server_sequence_number = self.server_seqnum
+                    client_sequence_number = message.segment.sequence_number
 
-                elif self.status == TCPStatusEnum.LAST_ACK:
-                    message = self.connection.receive(TIMEOUT)
-                    logging.info(f"Received message during LAST_ACK: {message}")
+                    self.connection.send(
+                        MessageInfo(
+                            message.ip,
+                            message.port,
+                            Segment.fin_ack_segment(sequence_number=server_sequence_number, ack=client_sequence_number + 1),
+                    ))
 
-                    if message.segment.flag == FlagEnum.ACK_FLAG:
-                        # Client acknowledges FIN, transition to CLOSED
+                    thread = threading.Thread(target=self. _resend_fin_ack, args=(message.ip, message.port, client_sequence_number, server_sequence_number))
+                    thread.start()
+                elif message.segment.flag == FlagEnum.ACK_FLAG and self.status == TCPStatusEnum.WAITING_LAST_ACK:
+                    if message.segment.ack == self.server_seqnum + 1:
+                        logging.info(f"[Client {message.ip}:{message.port}] valid LAST ACK received. Connection closed")
                         self.status = TCPStatusEnum.CLOSED
-                        logging.info("Connection closed successfully")
-                        break
                     else:
-                        logging.info(f"Received unexpected packet during LAST_ACK. Dropping ...")
+                        logging.info(f"[Client {message.ip}:{message.port}] invalid acknowledgemet number={message.segment.ack} received")
+                        return
+                else:
+                    logging.info(f"[Server {message.ip}:{message.port}] getting invalid flag={message.segment.flag}")
+                    return
 
-            except TimeoutError:
-                logging.info(f"Timeout error during closing phase ... will retry")
+            except socket_timeout:
                 pass
 
+    def _resend_fin_ack(self, ip: str, port: int, client_sequence_number:int, server_sequence_number: int):
+        time.sleep(TIMEOUT)
         
+        while self.status == TCPStatusEnum.WAITING_LAST_ACK and not self.closed:
+            self.connection.send(
+                MessageInfo(
+                    ip,
+                    port,
+                    Segment.fin_ack_segment(sequence_number=server_sequence_number, ack=client_sequence_number + 1),
+                )
+            )
+
+            time.sleep(TIMEOUT)

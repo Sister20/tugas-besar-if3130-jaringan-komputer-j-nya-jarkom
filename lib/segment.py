@@ -163,10 +163,9 @@ class Segment:
         )
 
     @staticmethod
-    def fin_segment(sequence_number: int, ack: int) -> 'Segment':
+    def fin_segment(sequence_number: int) -> 'Segment':
         return Segment(
             sequence_number=sequence_number,
-            ack=ack,
             flag=SegmentFlag(int(FlagEnum.FIN_FLAG))
         )
 

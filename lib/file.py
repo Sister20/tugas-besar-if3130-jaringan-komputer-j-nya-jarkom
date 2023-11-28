@@ -40,14 +40,6 @@ class FilePayload:
     def get_segment(self, segment_number: int) -> Segment:
         return Segment.data_segment(self.get_chunk(segment_number))
     
-    # todo get segment by index instead
-    def get_segments(self) -> list:
-        segment_list = []
-        for i in range(1, self.total_chunk + 1):
-            segment_list.append(Segment.data_segment(self.get_chunk(i)))
-        
-        return segment_list
-    
     def close(self):
         if (not self.fd.closed):
             self.fd.close()
