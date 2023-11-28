@@ -109,9 +109,9 @@ class TCPClient(BaseTCP):
                 logging.info(f"Invalid ack number. Dropping ...")
         elif message.segment.flag == FlagEnum.NO_FLAG:
             logging.info(f"Received data.")
-
         else:
             logging.info("Received unrelated packet. Dropping ...")
+    
     def close(self):
         TIME_WAIT_DURATION = 2 
         # connection termination
