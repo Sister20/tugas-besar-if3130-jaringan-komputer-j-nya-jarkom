@@ -16,7 +16,7 @@ def main():
 
     file_path = args.file_path  
 
-    connection = Connection("127.0.0.1", args.port_client)
+    connection = Connection("", args.port_client)
 
     tcp = FileReceiver(connection, args.host_server, args.port_server, file_path)
     tcp.connect()

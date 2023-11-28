@@ -1,4 +1,6 @@
 import argparse
+import socket
+
 
 class ClientArg:
     port_client: int
@@ -7,8 +9,6 @@ class ClientArg:
     file_path: str  
 
     def __init__(self) -> None:
-        self.host_server = "127.0.0.1"
-
         parser = argparse.ArgumentParser(
             description="Client for handling file transfer connection from server"
         )
@@ -34,21 +34,25 @@ class ClientArg:
             help="location of output path"
         )
 
+        parser.add_argument(
+            "host",
+            metavar="[broadcast host]",
+            type=str,
+            help="broadcast host for server address"
+        )
+
         args = parser.parse_args()
 
         self.port_client = getattr(args, "client_port")
         self.port_server = getattr(args, "broadcast_port")
         self.file_path = getattr(args, "file_path")
+        self.host_server = getattr(args, "host")
 
 class ServerArg:
     port_server: int
-    host_server: str
     file_path: str
 
     def __init__(self) -> None:
-        # localhost
-        self.host_server = "127.0.0.1"
-        
         parser = argparse.ArgumentParser(
             description="Server for sending file transfer to client"
         )

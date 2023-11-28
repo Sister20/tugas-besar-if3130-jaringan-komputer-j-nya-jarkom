@@ -11,7 +11,7 @@ def main():
     logging.basicConfig(format="[i] [Server] %(message)s", level=logging.INFO)
     args = ServerArg()
 
-    connection = Connection("127.0.0.1", args.port_server)
+    connection = Connection("", args.port_server)
 
     tcp_manager = TCPManager(args=args, connection=connection)
 
