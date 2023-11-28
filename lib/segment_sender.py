@@ -83,7 +83,6 @@ class SenderBuffer:
             event = self.event_buffer.popleft()
             thread = self.thread_buffer.popleft()
             event.set()
-            thread.join()
             self.last_byte_acked += 1
 
     def set_all_thread(self):
