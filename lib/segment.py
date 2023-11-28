@@ -5,8 +5,10 @@ from .checksum import calculate_checksum
 
 from typing import List
 
+
 class InvalidChecksumException(Exception):
     pass
+
 
 class SegmentFlag:
     syn: int
@@ -22,7 +24,7 @@ class SegmentFlag:
 
     def to_bytes(self) -> bytes:
         return struct.pack("<B", self.syn | self.ack | self.fin)
-    
+
     def __str__(self) -> str:
         if self.syn and self.ack:
             return "SYN-ACK"
@@ -34,9 +36,9 @@ class SegmentFlag:
             return "FIN"
         elif self.ack:
             return "ACK"
-        
+
         return "DATA"
-    
+
     def __eq__(self, __value: object) -> bool:
         if (isinstance(__value, int)):
             return self.flag == __value
@@ -44,8 +46,9 @@ class SegmentFlag:
             return self.flag == int(__value)
         elif isinstance(__value, SegmentFlag):
             return self.flag == __value.flag
-        
+
         return False
+
 
 class Segment:
     sequence_number: int
@@ -97,10 +100,10 @@ class Segment:
         result += self.data
 
         return result
-    
+
     def is_valid(self) -> bool:
         return calculate_checksum(self._get_bytes_for_checksum()) == self.checksum
-    
+
     def _get_bytes_for_checksum(self) -> bytes:
         result = b""
         result += struct.pack("<I", self.sequence_number)
@@ -116,7 +119,7 @@ class Segment:
         ack = struct.unpack("<I", src[4:8])[0]
         flag = SegmentFlag(struct.unpack("<B", src[8:9])[0])
         checksum = struct.unpack("<H", src[10:12])[0]
-        data = b"" if len(src) == 12  else src[12:]
+        data = b"" if len(src) == 12 else src[12:]
 
         segment = Segment(
             sequence_number,
@@ -128,16 +131,16 @@ class Segment:
 
         if not segment.is_valid():
             raise InvalidChecksumException()
-        
+
         return segment
-    
+
     @staticmethod
     def syn_segment(sequence_number: int) -> 'Segment':
         return Segment(
             sequence_number=sequence_number,
             flag=SegmentFlag(int(FlagEnum.SYN_FLAG))
         )
-    
+
     @staticmethod
     def ack_segment(sequence_number: int, ack: int) -> 'Segment':
         return Segment(
@@ -145,7 +148,7 @@ class Segment:
             ack=ack,
             flag=SegmentFlag(int(FlagEnum.ACK_FLAG))
         )
-    
+
     @staticmethod
     def syn_ack_segment(sequence_number: int, ack: int) -> 'Segment':
         return Segment(
@@ -153,7 +156,7 @@ class Segment:
             ack=ack,
             flag=SegmentFlag(int(FlagEnum.SYN_ACK_FLAG))
         )
-    
+
     @staticmethod
     def fin_segment(sequence_number: int, ack: int) -> 'Segment':
         return Segment(
@@ -161,7 +164,7 @@ class Segment:
             ack=ack,
             flag=SegmentFlag(int(FlagEnum.FIN_FLAG))
         )
-    
+
     @staticmethod
     def fin_ack_segment(sequence_number: int, ack: int) -> 'Segment':
         return Segment(
@@ -169,7 +172,7 @@ class Segment:
             ack=ack,
             flag=SegmentFlag(int(FlagEnum.FIN_ACK_FLAG))
         )
-    
+
     @staticmethod
     def data_segment(data: bytes) -> 'Segment':
         return Segment(

@@ -2,7 +2,6 @@ import random
 from .connection import Connection, MessageInfo
 from .segment import Segment
 from .constants import FlagEnum, TIMEOUT
-from .tcp import TCPServer
 from .tcp_pending import TCPPending
 from .handler import FileSender
 from .arg import ServerArg
@@ -55,13 +54,17 @@ class TCPManager:
             connection.begin_transfer()
 
             while not connection.closed:
-                message = self.connection.receive(TIMEOUT)
+                try:
+                    message = self.connection.receive(TIMEOUT)
 
-                if message.ip != connection.ip or message.port != connection.port:
-                    logging.info("Wrong packet destination. Dropping ...")
-                    continue
-                    
-                connection.handle_message(message)
+                    if message.ip != connection.ip or message.port != connection.port:
+                        logging.info("Wrong packet destination. Dropping ...")
+                        continue
+                        
+                    connection.handle_message(message)
+                except socket_timeout:
+                    # do not exit on timeout
+                    pass
 
     def parallel_handle(self):
         for connection in self.tcp_connections:

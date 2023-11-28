@@ -9,6 +9,7 @@ from .metadata import Metadata
 from os import path
 
 class FileReceiver(TCPClient):
+
     def __init__(self, connection: Connection, ip: str, port: int, file_path: str) -> None:
         super().__init__(connection, ip, port)
         self.file_path = file_path
@@ -76,6 +77,7 @@ class FileReceiver(TCPClient):
         self.connection.send(MessageInfo(self.ip, self.port, ack_segment))
 
     def write_to_file(self):
+        # pake class file yg gw bikin todo (lgsg write ke file dan ga ditaro dimemori)
         with open(self.file_path, "wb") as file:
             file.write(self.file_data)
 
