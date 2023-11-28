@@ -5,6 +5,7 @@ from .segment import Segment
 from .connection import Connection
 from .file import FilePayload
 from .connection import MessageInfo
+from .constants import TIMEOUT
 
 from collections import deque
 
@@ -15,7 +16,7 @@ class SenderBuffer:
     file_payload: FilePayload
     event_buffer: deque[Event]
     thread_buffer: deque[Thread]
-    window_size: int = 2
+    window_size: int = 4
     last_byte_acked: int
     init_sequence_number: int
 
@@ -40,7 +41,7 @@ class SenderBuffer:
         if ack_number <= self.last_byte_acked:
             return
         try:
-            print(f"ack_number {ack_number} last_byte_acked {self.last_byte_acked} last_byte_send {self.last_byte_send}")
+            # print(f"ack_number {ack_number} last_byte_acked {self.last_byte_acked} last_byte_send {self.last_byte_send}")
             self._end_task(ack_number - self.last_byte_acked - 1)
             self._start_task(self.window_size - (self.last_byte_send - self.last_byte_acked))
             self.last_byte_acked = ack_number - 1
@@ -50,8 +51,10 @@ class SenderBuffer:
         except Exception as e:
             logging.info(f"ERROR {e}")
     
-    def _send_segment_with_backoff_timeout(self, event: Event, segment: Segment, timeout = 0.25, retry:int = 1) -> None:
-        while not event.is_set() and retry < 10:
+    def _send_segment_with_backoff_timeout(self, event: Event, segment: Segment, timeout = TIMEOUT, max_retry: int = 10) -> None:
+        retry = 0
+
+        while not event.is_set() and retry < max_retry:
             self.connection.send(
                 MessageInfo(
                     self.ip_dest,
@@ -59,7 +62,6 @@ class SenderBuffer:
                     segment,
                 )
             )
-            # logging.info(f"Sent packet\n{segment}to {self.ip_dest}:{self.port_dest} with timeout {timeout}")
             sleep(timeout)
             retry += 1
 
@@ -70,11 +72,9 @@ class SenderBuffer:
             segment.sequence_number = self.last_byte_send + 1
             event = Event()
             thread = Thread(target=self._send_segment_with_backoff_timeout, args=(event, segment,))
-            print(f"[{self.port_dest}] Starting {self.last_byte_send + 1 - (self.init_sequence_number)} {thread}")
             thread.start()
             self.event_buffer.append(event)
             self.thread_buffer.append(thread)
-            print(f"thread_buffer {len(self.thread_buffer)}")
             self.last_byte_send += 1
             
 
@@ -85,7 +85,6 @@ class SenderBuffer:
             event.set()
             thread.join()
             self.last_byte_acked += 1
-            print(f"[{self.port_dest}] Killed {self.last_byte_acked - self.init_sequence_number} {thread}")
 
     def set_all_thread(self):
         for ev in self.event_buffer:
