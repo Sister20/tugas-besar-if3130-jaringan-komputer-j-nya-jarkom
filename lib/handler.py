@@ -6,6 +6,7 @@ from .tcp import TCPClient, TCPStatusEnum, TCPServer
 from .segment_sender import SenderBuffer
 import logging
 from .metadata import Metadata
+from os import path
 
 class FileReceiver(TCPClient):
     def __init__(self, connection: Connection, ip: str, port: int, file_path: str) -> None:
@@ -68,6 +69,8 @@ class FileReceiver(TCPClient):
         self.file_size_bytes = file_size_bytes
         self.server_sequence_number += 1
 
+        self.file_path = path.join(self.file_path, filename + extension)
+
         # send ACK for the received segment
         ack_segment = Segment.ack_segment(0, segment.sequence_number + 1)
         self.connection.send(MessageInfo(self.ip, self.port, ack_segment))
@@ -79,7 +82,7 @@ class FileReceiver(TCPClient):
         logging.info(f"File received and saved at: {self.file_path}")
         
 class FileSender(TCPServer):
-    # sender_buffer: SenderBuffer
+    sender_buffer: SenderBuffer
     receiver_ack_number: int
 
     def __init__(self, filePath: str, connection: Connection, ip: str, port: int, ack_number: int) -> None:
@@ -88,7 +91,6 @@ class FileSender(TCPServer):
         self.sender_buffer = SenderBuffer(connection, ip, port, filePath, ack_number)
 
     def begin_transfer(self):
-        print("Begin tranfsfer")
         self.sender_buffer.send(self.receiver_ack_number)
 
     def handle_message(self, message: MessageInfo):
