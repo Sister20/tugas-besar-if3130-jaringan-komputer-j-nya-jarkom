@@ -60,7 +60,7 @@ class TCPClient(BaseTCP):
 
                     self.connection.send(MessageInfo(self.ip, self.port, Segment.syn_segment(self.handshake_sequence_number)))
 
-                    message = self.connection.receive(5)
+                    message = self.connection.receive(TIMEOUT)
 
                     self.status = TCPStatusEnum.WAITING_SYN_ACK
 
@@ -76,7 +76,7 @@ class TCPClient(BaseTCP):
                         logging.info("Received packet with flag other than SYN-ACK. Dropping ...")
 
                 elif self.status == TCPStatusEnum.WAITING_SYN_ACK:
-                    message = self.connection.receive(5)
+                    message = self.connection.receive(TIMEOUT)
 
                     if message.segment.flag == FlagEnum.SYN_ACK_FLAG:
                         if message.segment.ack == self.handshake_sequence_number + 1:
